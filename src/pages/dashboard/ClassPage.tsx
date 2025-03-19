@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { useAttendanceForClass, useSaveAttendance } from "@/hooks/useSupabase";
 import { AttendanceStatus } from "@/types/attendance";
 import { format } from "date-fns";
-import { CalendarIcon, CheckCircle, GraduationCap, User, Users, XCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle, User, Users, XCircle } from "lucide-react";
 import { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Student } from "@/types/user";
 
 export default function ClassPage() {
   const { classId } = useParams<{ classId: string }>();
@@ -79,20 +81,20 @@ export default function ClassPage() {
         id: item.students.id,
         firstName: item.students.first_name,
         lastName: item.students.last_name,
-        email: item.students.email || '', // Email might be null
-        role: 'student',
-        gradeId: classData?.grade?.id,
+        email: '', // Since email is not in profiles table
+        role: 'student' as const,
+        gradeId: classData?.grade?.id || '',
         classId: classId
-      }));
+      })) as Student[];
     },
     enabled: !!classId && !!classData
   });
   
-  // Fetch attendance records
-  const { data: attendanceRecords = {}, isLoading: isLoadingAttendance } = useQuery({
+  // Fetch attendance records using our hook
+  const { data: attendanceData = [], isLoading: isLoadingAttendance } = useQuery({
     queryKey: ['attendance', classId, format(selectedDate, 'yyyy-MM-dd')],
     queryFn: async () => {
-      if (!classId) return {};
+      if (!classId) return [];
       
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
@@ -103,17 +105,18 @@ export default function ClassPage() {
         .eq('date', formattedDate);
       
       if (error) throw error;
-      
-      // Transform to record format expected by AttendanceTable
-      const records: Record<string, AttendanceStatus> = {};
-      data.forEach(record => {
-        records[record.student_id] = record.status as AttendanceStatus;
-      });
-      
-      return records;
+      return data;
     },
     enabled: !!classId
   });
+  
+  // Transform attendance data into the format expected by AttendanceTable
+  const attendanceRecords = attendanceData.reduce<Record<string, AttendanceStatus>>((acc, record) => {
+    acc[record.student_id] = record.status as AttendanceStatus;
+    return acc;
+  }, {});
+  
+  const saveAttendanceMutation = useSaveAttendance();
   
   if (!user) return null;
   
@@ -150,8 +153,6 @@ export default function ClassPage() {
     return <Navigate to="/dashboard" />;
   }
   
-  const formattedDate = format(selectedDate, "yyyy-MM-dd");
-  
   // Calculate statistics
   const presentCount = Object.values(attendanceRecords).filter(
     (status) => status === "present"
@@ -168,33 +169,12 @@ export default function ClassPage() {
   const handleSaveAttendance = async (records: Record<string, AttendanceStatus>) => {
     if (!user || !classId) return;
     
-    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-    
-    // Delete existing records for this date and class
-    await supabase
-      .from('attendance')
-      .delete()
-      .eq('class_id', classId)
-      .eq('date', formattedDate);
-    
-    // Insert new records
-    const recordsToInsert = Object.entries(records).map(([studentId, status]) => ({
-      class_id: classId,
-      student_id: studentId,
-      date: formattedDate,
-      status: status,
-      recorded_by: user.id
-    }));
-    
-    if (recordsToInsert.length > 0) {
-      const { error } = await supabase
-        .from('attendance')
-        .insert(recordsToInsert);
-      
-      if (error) {
-        console.error("Error saving attendance:", error);
-      }
-    }
+    saveAttendanceMutation.mutate({
+      classId,
+      records,
+      date: selectedDate,
+      recordedBy: user.id
+    });
   };
 
   return (
@@ -295,14 +275,13 @@ export default function ClassPage() {
                     <tr>
                       <th className="text-left p-3">Name</th>
                       <th className="text-left p-3">ID</th>
-                      <th className="text-left p-3">Email</th>
                       {isAdmin && <th className="text-left p-3">Actions</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {isLoadingStudents ? (
                       <tr>
-                        <td colSpan={isAdmin ? 4 : 3} className="p-3 text-center">
+                        <td colSpan={isAdmin ? 3 : 2} className="p-3 text-center">
                           Loading students...
                         </td>
                       </tr>
@@ -315,7 +294,6 @@ export default function ClassPage() {
                           <td className="p-3 text-muted-foreground">
                             {student.id.slice(0, 6)}
                           </td>
-                          <td className="p-3">{student.email}</td>
                           {isAdmin && (
                             <td className="p-3">
                               <Button variant="ghost" size="sm">
@@ -330,7 +308,7 @@ export default function ClassPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={isAdmin ? 4 : 3} className="p-3 text-center">
+                        <td colSpan={isAdmin ? 3 : 2} className="p-3 text-center">
                           No students in this class
                         </td>
                       </tr>

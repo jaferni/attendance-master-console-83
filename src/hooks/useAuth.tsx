@@ -1,7 +1,7 @@
-
 import { useContext } from 'react';
 import { AuthContext } from '@/context/AuthContext';
 import { Role } from '@/types/user';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -37,17 +37,33 @@ export function useAuth() {
   };
   
   // Check if user can access specific class (teacher assigned to class or superadmin)
-  const canAccessClass = (classId: string) => {
+  const canAccessClass = async (classId: string) => {
     if (!context.user) return false;
     
     if (context.user.role === 'superadmin') return true;
     
     if (context.user.role === 'teacher') {
-      return (context.user as any).classes?.includes(classId);
+      // Check if teacher is assigned to the class
+      const { data } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('id', classId)
+        .eq('teacher_id', context.user.id)
+        .single();
+        
+      return !!data;
     }
     
     if (context.user.role === 'student') {
-      return (context.user as any).classId === classId;
+      // Check if student is enrolled in the class
+      const { data } = await supabase
+        .from('student_classes')
+        .select('*')
+        .eq('class_id', classId)
+        .eq('student_id', context.user.id)
+        .single();
+        
+      return !!data;
     }
     
     return false;

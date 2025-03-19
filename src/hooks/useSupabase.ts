@@ -1,7 +1,8 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
+import { AttendanceStatus } from "@/types/attendance";
+import { format } from "date-fns";
 
 // Grades
 export const useGrades = () => {
@@ -310,5 +311,99 @@ export const useStudentsInClass = (classId: string) => {
       return data.map(item => item.profiles);
     },
     enabled: !!classId
+  });
+};
+
+// Attendance
+export const useAttendanceForClass = (classId: string, date: Date) => {
+  const formattedDate = format(date, 'yyyy-MM-dd');
+  
+  return useQuery({
+    queryKey: ['attendance', classId, formattedDate],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_attendance_for_class', {
+        p_class_id: classId,
+        p_date: formattedDate
+      });
+      
+      if (error) {
+        // Fallback to direct query if RPC is not available
+        const { data: directData, error: directError } = await supabase
+          .from('attendance')
+          .select('*')
+          .eq('class_id', classId)
+          .eq('date', formattedDate);
+          
+        if (directError) throw directError;
+        return directData;
+      }
+      
+      return data;
+    },
+    enabled: !!classId && !!date
+  });
+};
+
+export const useSaveAttendance = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      classId, 
+      records, 
+      date, 
+      recordedBy 
+    }: { 
+      classId: string, 
+      records: Record<string, AttendanceStatus>, 
+      date: Date,
+      recordedBy: string
+    }) => {
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      
+      // First delete existing records
+      const { error: deleteError } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('class_id', classId)
+        .eq('date', formattedDate);
+        
+      if (deleteError) throw deleteError;
+      
+      // Then insert new records
+      const recordsToInsert = Object.entries(records).map(([studentId, status]) => ({
+        class_id: classId,
+        student_id: studentId,
+        date: formattedDate,
+        status,
+        recorded_by: recordedBy
+      }));
+      
+      if (recordsToInsert.length === 0) return { success: true };
+      
+      const { error: insertError } = await supabase
+        .from('attendance')
+        .insert(recordsToInsert);
+        
+      if (insertError) throw insertError;
+      
+      return { success: true };
+    },
+    onSuccess: (_, variables) => {
+      const formattedDate = format(variables.date, 'yyyy-MM-dd');
+      queryClient.invalidateQueries({ queryKey: ['attendance', variables.classId, formattedDate] });
+      toast({
+        title: "Attendance Saved",
+        description: "The attendance records have been successfully saved.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Save Attendance",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
   });
 };
