@@ -9,186 +9,35 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      attendance: {
+      trees: {
         Row: {
-          class_id: string
-          created_at: string
-          date: string
+          created_at: string | null
           id: string
-          recorded_by: string | null
-          status: string
-          student_id: string
-          updated_at: string
+          image_url: string
+          latitude: number
+          longitude: number
+          name: string
+          phone: string
         }
         Insert: {
-          class_id: string
-          created_at?: string
-          date: string
+          created_at?: string | null
           id?: string
-          recorded_by?: string | null
-          status: string
-          student_id: string
-          updated_at?: string
+          image_url: string
+          latitude: number
+          longitude: number
+          name: string
+          phone: string
         }
         Update: {
-          class_id?: string
-          created_at?: string
-          date?: string
+          created_at?: string | null
           id?: string
-          recorded_by?: string | null
-          status?: string
-          student_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "attendance_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attendance_recorded_by_fkey"
-            columns: ["recorded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attendance_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      classes: {
-        Row: {
-          created_at: string
-          grade_id: string
-          id: string
-          name: string
-          teacher_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          grade_id: string
-          id?: string
-          name: string
-          teacher_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          grade_id?: string
-          id?: string
+          image_url?: string
+          latitude?: number
+          longitude?: number
           name?: string
-          teacher_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "classes_grade_id_fkey"
-            columns: ["grade_id"]
-            isOneToOne: false
-            referencedRelation: "grades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "classes_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      grades: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          updated_at?: string
+          phone?: string
         }
         Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar: string | null
-          created_at: string
-          first_name: string
-          id: string
-          last_name: string
-          role: string
-          updated_at: string
-        }
-        Insert: {
-          avatar?: string | null
-          created_at?: string
-          first_name: string
-          id: string
-          last_name: string
-          role: string
-          updated_at?: string
-        }
-        Update: {
-          avatar?: string | null
-          created_at?: string
-          first_name?: string
-          id?: string
-          last_name?: string
-          role?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      student_classes: {
-        Row: {
-          class_id: string
-          created_at: string
-          student_id: string
-        }
-        Insert: {
-          class_id: string
-          created_at?: string
-          student_id: string
-        }
-        Update: {
-          class_id?: string
-          created_at?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_classes_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_classes_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
