@@ -1,10 +1,11 @@
 
 import { Calendar, CheckSquare, ClipboardList, Cog, GraduationCap, Home, LogOut, Users } from "lucide-react";
+import { useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { SchoolLogo } from "./SchoolLogo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthContext } from "@/context/AuthContext";
 
 interface SidebarLinkProps {
   href: string;
@@ -34,8 +35,11 @@ function SidebarLink({ href, icon: Icon, label, isActive }: SidebarLinkProps) {
 
 export function DashboardSidebar() {
   const location = useLocation();
-  const { user, logout, isSuperAdmin, isTeacher, isStudent } = useAuth();
+  const { user, logout } = useContext(AuthContext);
   
+  const isAdmin = user?.role === "superadmin";
+  const isTeacher = user?.role === "teacher";
+
   const superadminLinks = [
     { href: "/dashboard", icon: Home, label: "Overview" },
     { href: "/dashboard/grades", icon: GraduationCap, label: "Grades & Classes" },
@@ -59,7 +63,7 @@ export function DashboardSidebar() {
     { href: "/dashboard/settings", icon: Cog, label: "Settings" },
   ];
 
-  const links = isSuperAdmin() ? superadminLinks : (isTeacher() ? teacherLinks : studentLinks);
+  const links = isAdmin ? superadminLinks : (isTeacher ? teacherLinks : studentLinks);
 
   return (
     <div className="flex h-screen flex-col border-r bg-card shadow-subtle">
