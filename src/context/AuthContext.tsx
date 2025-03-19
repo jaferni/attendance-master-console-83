@@ -1,8 +1,13 @@
 
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
-import { allUsers } from "@/data/mockData";
 import { User } from "@/types/user";
 import { toast } from "@/components/ui/use-toast";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface AuthContextType {
   user: User | null;
@@ -24,59 +29,174 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   // Check for existing session on app load
   useEffect(() => {
-    const storedUser = localStorage.getItem("edutrack-user");
-    
-    if (storedUser) {
+    const checkSession = async () => {
+      setIsLoading(true);
+      
       try {
-        setUser(JSON.parse(storedUser));
+        // Get session from Supabase
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session) {
+          // Fetch user profile from profiles table
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.session.user.id)
+            .single();
+            
+          if (profileError) {
+            console.error("Error fetching user profile:", profileError);
+            setUser(null);
+          } else if (profileData) {
+            // Map Supabase user to our User type
+            const userProfile: User = {
+              id: profileData.id,
+              firstName: profileData.first_name || '',
+              lastName: profileData.last_name || '',
+              email: data.session.user.email || '',
+              role: profileData.role as any || 'student',
+              avatar: profileData.avatar || '',
+            };
+            setUser(userProfile);
+          }
+        } else {
+          setUser(null);
+        }
       } catch (error) {
-        console.error("Failed to parse stored user", error);
-        localStorage.removeItem("edutrack-user");
+        console.error("Session check error:", error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
     
-    setIsLoading(false);
+    // Check session on load
+    checkSession();
+    
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          // Fetch user profile when signed in
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (!profileError && profileData) {
+            const userProfile: User = {
+              id: profileData.id,
+              firstName: profileData.first_name || '',
+              lastName: profileData.last_name || '',
+              email: session.user.email || '',
+              role: profileData.role as any || 'student',
+              avatar: profileData.avatar || '',
+            };
+            setUser(userProfile);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+      }
+    );
+    
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    
-    // Find user with matching email (password is not checked for demo)
-    const foundUser = allUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase()
-    );
-    
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem("edutrack-user", JSON.stringify(foundUser));
+    try {
+      // Sign in with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return false;
+      }
+      
+      if (data.user) {
+        // Fetch user profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error("Error fetching user profile:", profileError);
+          toast({
+            title: "Login failed",
+            description: "Could not fetch user profile. Please try again.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return false;
+        }
+        
+        // Map Supabase user to our User type
+        const userProfile: User = {
+          id: profileData.id,
+          firstName: profileData.first_name || '',
+          lastName: profileData.last_name || '',
+          email: data.user.email || '',
+          role: profileData.role as any || 'student',
+          avatar: profileData.avatar || '',
+        };
+        
+        setUser(userProfile);
+        
+        toast({
+          title: "Logged in successfully",
+          description: `Welcome, ${userProfile.firstName}!`,
+        });
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      setIsLoading(false);
+      return false;
+    } catch (error) {
+      console.error("Login error:", error);
       toast({
-        title: "Logged in successfully",
-        description: `Welcome, ${foundUser.firstName}!`,
+        title: "Login failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
       });
       setIsLoading(false);
-      return true;
+      return false;
     }
-    
-    toast({
-      title: "Login failed",
-      description: "Invalid email or password. Please try again.",
-      variant: "destructive",
-    });
-    
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("edutrack-user");
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout failed",
+        description: "An error occurred while trying to log out.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
