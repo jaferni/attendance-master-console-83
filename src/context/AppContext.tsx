@@ -1,4 +1,3 @@
-
 import { createContext, PropsWithChildren, useCallback, useState } from "react";
 import { attendanceRecords as initialAttendanceRecords, classes as initialClasses, grades as initialGrades, holidays as initialHolidays, students as initialStudents, teachers as initialTeachers, weeklyHolidays as initialWeeklyHolidays } from "@/data/mockData";
 import { AttendanceRecord, AttendanceStatus } from "@/types/attendance";
@@ -25,10 +24,18 @@ interface AppContextType {
   addHoliday: (holiday: Holiday) => void;
   updateWeeklyHolidays: (weeklyHolidays: WeeklyHoliday[]) => void;
   
+  // Grade methods
+  addGrade: (grade: Grade) => void;
+  updateGrade: (grade: Grade) => void;
+  deleteGrade: (gradeId: string) => void;
+  
   // Class methods
   getClassById: (classId: string) => Class | undefined;
   getClassesForTeacher: (teacherId: string) => Class[];
   getStudentsInClass: (classId: string) => Student[];
+  addClass: (classData: Class) => void;
+  updateClass: (classData: Class) => void;
+  deleteClass: (classId: string) => void;
   
   // Teacher methods
   assignTeacherToClass: (teacherId: string, classId: string) => void;
@@ -51,19 +58,26 @@ export const AppContext = createContext<AppContextType>({
   addHoliday: () => {},
   updateWeeklyHolidays: () => {},
   
+  addGrade: () => {},
+  updateGrade: () => {},
+  deleteGrade: () => {},
+  
   getClassById: () => undefined,
   getClassesForTeacher: () => [],
   getStudentsInClass: () => [],
+  addClass: () => {},
+  updateClass: () => {},
+  deleteClass: () => {},
   
   assignTeacherToClass: () => {},
   getTeacherById: () => undefined,
 });
 
 export function AppProvider({ children }: PropsWithChildren) {
-  const [grades] = useState<Grade[]>(initialGrades);
+  const [grades, setGrades] = useState<Grade[]>(initialGrades);
   const [classes, setClasses] = useState<Class[]>(initialClasses);
   const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers);
-  const [students] = useState<Student[]>(initialStudents);
+  const [students, setStudents] = useState<Student[]>(initialStudents);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(initialAttendanceRecords);
   const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays);
   const [weeklyHolidays, setWeeklyHolidays] = useState<WeeklyHoliday[]>(initialWeeklyHolidays);
@@ -84,12 +98,10 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const saveAttendance = useCallback(
     (classId: string, date: string, statusRecords: Record<string, AttendanceStatus>, teacherId: string) => {
-      // Remove existing records for this class and date
       const updatedRecords = attendanceRecords.filter(
         (record) => !(record.classId === classId && record.date === date)
       );
       
-      // Add new attendance records
       const newRecords = Object.entries(statusRecords).map(([studentId, status]) => ({
         id: `attendance-${date}-${studentId}`,
         date,
@@ -129,6 +141,46 @@ export function AppProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
+  // Grade methods
+  const addGrade = useCallback((grade: Grade) => {
+    setGrades((prev) => [...prev, grade]);
+    
+    toast({
+      title: "Grade added",
+      description: `${grade.name} grade has been added successfully.`,
+    });
+  }, []);
+  
+  const updateGrade = useCallback((updatedGrade: Grade) => {
+    setGrades((prev) => 
+      prev.map((grade) => 
+        grade.id === updatedGrade.id ? updatedGrade : grade
+      )
+    );
+    
+    setClasses((prev) =>
+      prev.map((cls) =>
+        cls.grade.id === updatedGrade.id
+          ? { ...cls, grade: updatedGrade }
+          : cls
+      )
+    );
+    
+    toast({
+      title: "Grade updated",
+      description: `${updatedGrade.name} grade has been updated successfully.`,
+    });
+  }, []);
+  
+  const deleteGrade = useCallback((gradeId: string) => {
+    setGrades((prev) => prev.filter((grade) => grade.id !== gradeId));
+    
+    toast({
+      title: "Grade deleted",
+      description: "The grade has been deleted successfully.",
+    });
+  }, []);
+
   // Class methods
   const getClassById = useCallback(
     (classId: string) => {
@@ -150,18 +202,47 @@ export function AppProvider({ children }: PropsWithChildren) {
     },
     [students]
   );
+  
+  const addClass = useCallback((classData: Class) => {
+    setClasses((prev) => [...prev, classData]);
+    
+    toast({
+      title: "Class added",
+      description: `${classData.name} has been added successfully.`,
+    });
+  }, []);
+  
+  const updateClass = useCallback((updatedClass: Class) => {
+    setClasses((prev) => 
+      prev.map((cls) => 
+        cls.id === updatedClass.id ? updatedClass : cls
+      )
+    );
+    
+    toast({
+      title: "Class updated",
+      description: `${updatedClass.name} has been updated successfully.`,
+    });
+  }, []);
+  
+  const deleteClass = useCallback((classId: string) => {
+    setClasses((prev) => prev.filter((cls) => cls.id !== classId));
+    
+    toast({
+      title: "Class deleted",
+      description: "The class has been deleted successfully.",
+    });
+  }, []);
 
   // Teacher methods
   const assignTeacherToClass = useCallback(
     (teacherId: string, classId: string) => {
-      // Update the class
       setClasses((prevClasses) =>
         prevClasses.map((c) =>
           c.id === classId ? { ...c, teacherId } : c
         )
       );
       
-      // Update the teacher
       setTeachers((prevTeachers) =>
         prevTeachers.map((t) =>
           t.id === teacherId
@@ -203,9 +284,16 @@ export function AppProvider({ children }: PropsWithChildren) {
         addHoliday,
         updateWeeklyHolidays,
         
+        addGrade,
+        updateGrade,
+        deleteGrade,
+        
         getClassById,
         getClassesForTeacher,
         getStudentsInClass,
+        addClass,
+        updateClass,
+        deleteClass,
         
         assignTeacherToClass,
         getTeacherById,

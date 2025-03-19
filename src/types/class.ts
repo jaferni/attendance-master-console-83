@@ -12,4 +12,6 @@ export interface Class {
   grade: Grade;
   teacherId?: string;
   students: Student[];
+  subject?: string;
+  description?: string;
 }
