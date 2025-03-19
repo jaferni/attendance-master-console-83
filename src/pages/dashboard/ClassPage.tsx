@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardShell } from "@/components/DashboardShell";
 import { AttendanceTable } from "@/components/dashboard/AttendanceTable";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
-import { useAttendanceForClass, useSaveAttendance } from "@/hooks/useSupabase";
+import { useAttendanceForClass, useSaveAttendance, useStudentsInClass } from "@/hooks/useSupabase";
 import { AttendanceStatus } from "@/types/attendance";
 import { format } from "date-fns";
 import { CalendarIcon, CheckCircle, User, Users, XCircle } from "lucide-react";
@@ -61,54 +60,13 @@ export default function ClassPage() {
   });
   
   // Fetch students in class
-  const { data: students = [], isLoading: isLoadingStudents } = useQuery({
-    queryKey: ['students', classId],
-    queryFn: async () => {
-      if (!classId) return [];
-      
-      const { data, error } = await supabase
-        .from('student_classes')
-        .select(`
-          student_id,
-          students:profiles!student_id(*)
-        `)
-        .eq('class_id', classId);
-      
-      if (error) throw error;
-      
-      // Transform the data to match expected format
-      return data.map(item => ({
-        id: item.students.id,
-        firstName: item.students.first_name,
-        lastName: item.students.last_name,
-        email: '', // Since email is not in profiles table
-        role: 'student' as const,
-        gradeId: classData?.grade?.id || '',
-        classId: classId
-      })) as Student[];
-    },
-    enabled: !!classId && !!classData
-  });
+  const { data: students = [], isLoading: isLoadingStudents } = useStudentsInClass(classId || '');
   
-  // Fetch attendance records using our hook
-  const { data: attendanceData = [], isLoading: isLoadingAttendance } = useQuery({
-    queryKey: ['attendance', classId, format(selectedDate, 'yyyy-MM-dd')],
-    queryFn: async () => {
-      if (!classId) return [];
-      
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      
-      const { data, error } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('class_id', classId)
-        .eq('date', formattedDate);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!classId
-  });
+  // Fetch attendance records
+  const { data: attendanceData = [], isLoading: isLoadingAttendance } = useAttendanceForClass(
+    classId || '', 
+    selectedDate
+  );
   
   // Transform attendance data into the format expected by AttendanceTable
   const attendanceRecords = attendanceData.reduce<Record<string, AttendanceStatus>>((acc, record) => {
@@ -153,6 +111,17 @@ export default function ClassPage() {
     return <Navigate to="/dashboard" />;
   }
   
+  // Map database students to our app's Student type
+  const mappedStudents: Student[] = students.map(student => ({
+    id: student.id,
+    firstName: student.first_name,
+    lastName: student.last_name,
+    email: student.email || '',
+    role: 'student' as const,
+    gradeId: classData.grade?.id || '',
+    classId: classId
+  }));
+  
   // Calculate statistics
   const presentCount = Object.values(attendanceRecords).filter(
     (status) => status === "present"
@@ -162,8 +131,8 @@ export default function ClassPage() {
     (status) => status === "absent"
   ).length;
   
-  const attendanceRate = students.length
-    ? Math.round((presentCount / students.length) * 100)
+  const attendanceRate = mappedStudents.length
+    ? Math.round((presentCount / mappedStudents.length) * 100)
     : 0;
   
   const handleSaveAttendance = async (records: Record<string, AttendanceStatus>) => {
@@ -195,7 +164,7 @@ export default function ClassPage() {
               <CardContent className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
                 <span className="text-2xl font-bold">
-                  {isLoadingStudents ? "..." : students.length}
+                  {isLoadingStudents ? "..." : mappedStudents.length}
                 </span>
               </CardContent>
             </Card>
@@ -256,7 +225,7 @@ export default function ClassPage() {
                 </div>
               </div>
               <AttendanceTable
-                students={students}
+                students={mappedStudents}
                 date={selectedDate}
                 existingRecords={attendanceRecords}
                 onSave={handleSaveAttendance}
@@ -285,8 +254,8 @@ export default function ClassPage() {
                           Loading students...
                         </td>
                       </tr>
-                    ) : students.length > 0 ? (
-                      students.map((student) => (
+                    ) : mappedStudents.length > 0 ? (
+                      mappedStudents.map((student) => (
                         <tr key={student.id} className="animate-slide-up">
                           <td className="p-3 font-medium">
                             {student.firstName} {student.lastName}

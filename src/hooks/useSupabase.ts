@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
@@ -321,27 +322,31 @@ export const useAttendanceForClass = (classId: string, date: Date) => {
   return useQuery({
     queryKey: ['attendance', classId, formattedDate],
     queryFn: async () => {
-      // Type assertion to tell TypeScript that these parameters are valid
-      const params: Record<string, any> = {
-        p_class_id: classId,
-        p_date: formattedDate
-      };
-      
-      const { data, error } = await supabase.rpc('get_attendance_for_class', params);
-      
-      if (error) {
+      try {
+        // Using the RPC function we created
+        const { data, error } = await supabase.rpc(
+          'get_attendance_for_class',
+          {
+            p_class_id: classId,
+            p_date: formattedDate
+          }
+        );
+        
+        if (error) throw error;
+        return data;
+      } catch (rpcError) {
+        console.error("RPC error:", rpcError);
+        
         // Fallback to direct query if RPC is not available
-        const { data: directData, error: directError } = await supabase
+        const { data, error } = await supabase
           .from('attendance')
           .select('*')
           .eq('class_id', classId)
           .eq('date', formattedDate);
           
-        if (directError) throw directError;
-        return directData;
+        if (error) throw error;
+        return data;
       }
-      
-      return data;
     },
     enabled: !!classId && !!date
   });
