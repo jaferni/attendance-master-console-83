@@ -1,4 +1,3 @@
-
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import { User } from "@/types/user";
 import { toast } from "@/components/ui/use-toast";
@@ -106,7 +105,52 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setIsLoading(true);
     
     try {
-      // Sign in with Supabase
+      // For demo purposes, allow login with the demo accounts
+      if (email === "david.anderson@school.edu" || 
+          email === "emma.thompson@school.edu" || 
+          email === "alex.johnson@school.edu") {
+        
+        // Create a mock user based on the email
+        let role: 'superadmin' | 'teacher' | 'student' = 'student';
+        let firstName = '';
+        let lastName = '';
+        
+        if (email === "david.anderson@school.edu") {
+          role = 'superadmin';
+          firstName = 'David';
+          lastName = 'Anderson';
+        } else if (email === "emma.thompson@school.edu") {
+          role = 'teacher';
+          firstName = 'Emma';
+          lastName = 'Thompson';
+        } else if (email === "alex.johnson@school.edu") {
+          role = 'student';
+          firstName = 'Alex';
+          lastName = 'Johnson';
+        }
+        
+        // Set mock user
+        const mockUser: User = {
+          id: `mock-${email}`,
+          firstName,
+          lastName,
+          email,
+          role,
+          avatar: '',
+        };
+        
+        setUser(mockUser);
+        
+        toast({
+          title: "Logged in successfully",
+          description: `Welcome, ${firstName}!`,
+        });
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // If not a demo account, try to sign in with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -178,6 +222,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = async () => {
     try {
+      // If it's a mock user, just set user to null
+      if (user && user.id.startsWith('mock-')) {
+        setUser(null);
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out.",
+        });
+        return;
+      }
+      
+      // Otherwise sign out from Supabase
       await supabase.auth.signOut();
       setUser(null);
       toast({
