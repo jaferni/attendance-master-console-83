@@ -321,10 +321,13 @@ export const useAttendanceForClass = (classId: string, date: Date) => {
   return useQuery({
     queryKey: ['attendance', classId, formattedDate],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_attendance_for_class', {
+      // Type assertion to tell TypeScript that these parameters are valid
+      const params: Record<string, any> = {
         p_class_id: classId,
         p_date: formattedDate
-      });
+      };
+      
+      const { data, error } = await supabase.rpc('get_attendance_for_class', params);
       
       if (error) {
         // Fallback to direct query if RPC is not available
