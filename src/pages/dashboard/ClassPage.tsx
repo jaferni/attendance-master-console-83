@@ -1,3 +1,4 @@
+
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardShell } from "@/components/DashboardShell";
 import { AttendanceTable } from "@/components/dashboard/AttendanceTable";
@@ -116,7 +117,7 @@ export default function ClassPage() {
     id: student.id,
     firstName: student.first_name,
     lastName: student.last_name,
-    email: student.email || '',
+    email: '', // Use empty string as fallback since email doesn't exist in profiles table
     role: 'student' as const,
     gradeId: classData.grade?.id || '',
     classId: classId
