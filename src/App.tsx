@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { AppProvider } from "./context/AppContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Pages
 import Index from "./pages/Index";
@@ -34,15 +35,24 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Navigate to="/login" />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard/attendance" element={<AttendancePage />} />
-              <Route path="/dashboard/holidays" element={<HolidaysPage />} />
-              <Route path="/dashboard/classes/:classId" element={<ClassPage />} />
-              <Route path="/dashboard/classes" element={<ClassesPage />} />
-              <Route path="/dashboard/grades" element={<GradesClassesPage />} />
-              <Route path="/dashboard/students" element={<StudentsPage />} />
-              <Route path="/dashboard/teachers" element={<TeachersPage />} />
-              <Route path="/dashboard/settings" element={<SettingsPage />} />
+              
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/attendance" element={<AttendancePage />} />
+                <Route path="/dashboard/classes/:classId" element={<ClassPage />} />
+                <Route path="/dashboard/classes" element={<ClassesPage />} />
+                <Route path="/dashboard/settings" element={<SettingsPage />} />
+              </Route>
+              
+              {/* Admin Only Routes */}
+              <Route element={<ProtectedRoute allowedRoles={["superadmin"]} />}>
+                <Route path="/dashboard/holidays" element={<HolidaysPage />} />
+                <Route path="/dashboard/grades" element={<GradesClassesPage />} />
+                <Route path="/dashboard/students" element={<StudentsPage />} />
+                <Route path="/dashboard/teachers" element={<TeachersPage />} />
+              </Route>
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

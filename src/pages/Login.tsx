@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { AuthContext } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GraduationCap, Loader2 } from "lucide-react";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Navigate } from "react-router-dom";
 import { z } from "zod";
@@ -20,7 +20,7 @@ const formSchema = z.object({
 });
 
 export default function Login() {
-  const { user, login, isLoading } = useContext(AuthContext);
+  const { user, login, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
