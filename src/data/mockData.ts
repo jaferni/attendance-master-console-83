@@ -49,7 +49,7 @@ export const createMockStudents = (): Student[] => {
       firstName: name.first,
       lastName: name.last,
       email: `${name.first.toLowerCase()}.${name.last.toLowerCase()}@school.edu`,
-      role: "student" as Role,
+      role: "student" as const,
       gradeId: grade.id,
       classId: `class-${gradeIndex + 1}-${classIndex + 1}`,
       avatar: undefined,

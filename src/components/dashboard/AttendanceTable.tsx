@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/components/ui/toast";
+import { useToast } from "@/components/ui/use-toast";
 import { AttendanceStatus } from "@/types/attendance";
 import { Student } from "@/types/user";
 import { useState } from "react";
@@ -30,6 +30,7 @@ export function AttendanceTable({
   const [selectAll, setSelectAll] = useState<boolean>(
     Object.values(existingRecords).every((status) => status === "present")
   );
+  const { toast } = useToast();
 
   // Handle marking all students as present/absent
   const handleSelectAll = (checked: boolean) => {

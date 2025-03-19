@@ -11,6 +11,7 @@ import { AttendanceCalendar } from "@/components/ui/attendance-calendar";
 import { AuthContext } from "@/context/AuthContext";
 import { AppContext } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
+import { AttendanceStatus } from "@/types/attendance";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useContext, useState } from "react";
@@ -58,7 +59,7 @@ export default function AttendancePage() {
     ? getAttendanceForStudent(user.id)
     : [];
   
-  const handleSaveAttendance = (records: Record<string, string>) => {
+  const handleSaveAttendance = (records: Record<string, AttendanceStatus>) => {
     if (selectedClass && user) {
       saveAttendance(
         selectedClass.id,

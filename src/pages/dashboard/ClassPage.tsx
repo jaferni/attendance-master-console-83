@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuthContext } from "@/context/AuthContext";
 import { AppContext } from "@/context/AppContext";
+import { AttendanceStatus } from "@/types/attendance";
 import { format } from "date-fns";
 import { CalendarIcon, CheckCircle, GraduationCap, User, Users, XCircle } from "lucide-react";
 import { useContext, useState } from "react";
@@ -66,7 +67,7 @@ export default function ClassPage() {
     ? Math.round((presentCount / classData.students.length) * 100)
     : 0;
   
-  const handleSaveAttendance = (records: Record<string, string>) => {
+  const handleSaveAttendance = (records: Record<string, AttendanceStatus>) => {
     if (user) {
       saveAttendance(
         classId,
