@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Button } from "@/components/ui/button";
@@ -152,6 +151,7 @@ export default function GradesClassesPage() {
       id: `class-${Date.now()}`,
       name: data.name,
       grade,
+      grade_id: data.gradeId,
       teacherId: undefined,
       students: [],
       subject: data.subject,
@@ -185,6 +185,7 @@ export default function GradesClassesPage() {
         ...selectedClass,
         name: data.name,
         grade,
+        grade_id: data.gradeId,
         subject: data.subject,
         description: data.description,
       };

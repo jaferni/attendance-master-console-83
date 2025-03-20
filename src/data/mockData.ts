@@ -132,6 +132,7 @@ grades.forEach((grade, gradeIndex) => {
       id: classId,
       name: `${grade.name} Grade - ${i === 1 ? 'A' : 'B'}`,
       grade,
+      grade_id: grade.id,
       teacherId: teacher?.id,
       students: students.filter((student) => student.classId === classId),
     });
