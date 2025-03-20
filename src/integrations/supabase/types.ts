@@ -9,6 +9,110 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      attendance_records: {
+        Row: {
+          class_id: string
+          created_at: string
+          date: string
+          id: string
+          marked_at: string
+          marked_by_id: string | null
+          status: string
+          student_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          date: string
+          id?: string
+          marked_at?: string
+          marked_by_id?: string | null
+          status: string
+          student_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          marked_at?: string
+          marked_by_id?: string | null
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          created_at: string
+          description: string | null
+          grade_id: string
+          id: string
+          name: string
+          subject: string | null
+          teacher_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          grade_id: string
+          id?: string
+          name: string
+          subject?: string | null
+          teacher_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          grade_id?: string
+          id?: string
+          name?: string
+          subject?: string | null
+          teacher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grades: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar: string | null
@@ -38,6 +142,51 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      students: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          email: string
+          first_name: string
+          grade_id: string | null
+          id: string
+          last_name: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          grade_id?: string | null
+          id?: string
+          last_name: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          grade_id?: string | null
+          id?: string
+          last_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

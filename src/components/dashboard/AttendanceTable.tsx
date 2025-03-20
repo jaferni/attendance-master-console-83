@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { AttendanceStatus } from "@/types/attendance";
 import { Student } from "@/types/user";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StatusBadge } from "../StatusBadge";
 
 interface AttendanceTableProps {
@@ -31,6 +31,16 @@ export function AttendanceTable({
     Object.values(existingRecords).every((status) => status === "present")
   );
   const { toast } = useToast();
+
+  // Update attendance state when existingRecords changes
+  useEffect(() => {
+    setAttendance(existingRecords);
+    setSelectAll(
+      students.length > 0 && 
+      Object.values(existingRecords).length === students.length && 
+      Object.values(existingRecords).every((status) => status === "present")
+    );
+  }, [existingRecords, students]);
 
   // Handle marking all students as present/absent
   const handleSelectAll = (checked: boolean) => {
@@ -68,11 +78,12 @@ export function AttendanceTable({
   const handleSave = () => {
     if (onSave) {
       onSave(attendance);
+    } else {
+      toast({
+        title: "Attendance saved",
+        description: "Attendance has been successfully recorded.",
+      });
     }
-    toast({
-      title: "Attendance saved",
-      description: "Attendance has been successfully recorded.",
-    });
   };
 
   return (
@@ -96,57 +107,65 @@ export function AttendanceTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {students.map((student) => (
-              <TableRow key={student.id} className="animate-slide-up">
-                {!readOnly && (
-                  <TableCell className="text-center">
-                    <Checkbox
-                      checked={attendance[student.id] === "present"}
-                      onCheckedChange={(checked) =>
-                        handleAttendanceChange(
-                          student.id,
-                          checked ? "present" : "absent"
-                        )
-                      }
-                      aria-label={`Mark ${student.firstName} ${student.lastName} as present`}
-                    />
-                  </TableCell>
-                )}
-                <TableCell className="font-medium">
-                  {student.firstName} {student.lastName}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {student.id.slice(0, 6)}
-                </TableCell>
-                <TableCell>
-                  {readOnly ? (
-                    <StatusBadge status={attendance[student.id] || "absent"} />
-                  ) : (
-                    <Select
-                      value={attendance[student.id] || "absent"}
-                      onValueChange={(value: AttendanceStatus) =>
-                        handleAttendanceChange(student.id, value)
-                      }
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="present">Present</SelectItem>
-                        <SelectItem value="absent">Absent</SelectItem>
-                        <SelectItem value="late">Late</SelectItem>
-                        <SelectItem value="excused">Excused</SelectItem>
-                      </SelectContent>
-                    </Select>
+            {students.length > 0 ? (
+              students.map((student) => (
+                <TableRow key={student.id} className="animate-slide-up">
+                  {!readOnly && (
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={attendance[student.id] === "present"}
+                        onCheckedChange={(checked) =>
+                          handleAttendanceChange(
+                            student.id,
+                            checked ? "present" : "absent"
+                          )
+                        }
+                        aria-label={`Mark ${student.firstName} ${student.lastName} as present`}
+                      />
+                    </TableCell>
                   )}
+                  <TableCell className="font-medium">
+                    {student.firstName} {student.lastName}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {student.id.slice(0, 6)}
+                  </TableCell>
+                  <TableCell>
+                    {readOnly ? (
+                      <StatusBadge status={attendance[student.id] || "absent"} />
+                    ) : (
+                      <Select
+                        value={attendance[student.id] || "absent"}
+                        onValueChange={(value: AttendanceStatus) =>
+                          handleAttendanceChange(student.id, value)
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="present">Present</SelectItem>
+                          <SelectItem value="absent">Absent</SelectItem>
+                          <SelectItem value="late">Late</SelectItem>
+                          <SelectItem value="excused">Excused</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={readOnly ? 3 : 4} className="text-center py-4 text-muted-foreground">
+                  No students found in this class
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
       
-      {!readOnly && (
+      {!readOnly && students.length > 0 && (
         <div className="flex justify-end">
           <Button onClick={handleSave}>Save Attendance</Button>
         </div>
