@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -42,14 +43,17 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
     setIsSubmitting(true);
     
     try {
-      // First, let's insert directly into the students table since we can't create auth users
-      // without actually signing them up through the auth flow
+      // Insert teacher into the students table with a specific role field
+      // We'll later query them based on the role to differentiate from students
       const { data: teacherData, error: teacherError } = await supabase
         .from('students')
         .insert({
           first_name: firstName,
           last_name: lastName,
-          email: email
+          email: email,
+          // We'll add a custom field to mark this as a teacher entry
+          // This will help us distinguish between students and teachers
+          role: "teacher" // Add this field to identify as teacher
         })
         .select()
         .single();
@@ -100,6 +104,9 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Teacher</DialogTitle>
+          <DialogDescription>
+            Add a new teacher to the system. Teachers will be able to manage classes and students.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 py-4">

@@ -11,6 +11,17 @@ import { useContext, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AddTeacherForm } from "@/components/forms/AddTeacherForm";
 import { Teacher } from "@/types/user";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter, 
+  DialogDescription 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function TeachersPage() {
   const { user } = useContext(AuthContext);
@@ -18,6 +29,19 @@ export default function TeachersPage() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
+  const { toast } = useToast();
+  
+  // Edit teacher states
+  const [isEditTeacherOpen, setIsEditTeacherOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Delete confirmation dialog
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
   
   if (!user || user.role !== "superadmin") {
     return <Navigate to="/dashboard" />;
@@ -37,6 +61,103 @@ export default function TeachersPage() {
   const handleTeacherAdded = (teacher: Teacher) => {
     // Refresh data from the server
     fetchData();
+  };
+  
+  const openEditDialog = (teacher: Teacher) => {
+    setEditingTeacher(teacher);
+    setEditFirstName(teacher.firstName);
+    setEditLastName(teacher.lastName);
+    setEditEmail(teacher.email);
+    setIsEditTeacherOpen(true);
+  };
+  
+  const handleEditTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingTeacher) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Update teacher in the database
+      const { error } = await supabase
+        .from('students')
+        .update({
+          first_name: editFirstName,
+          last_name: editLastName,
+          email: editEmail
+        })
+        .eq('id', editingTeacher.id)
+        .eq('role', 'teacher'); // Make sure we only update teachers
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Teacher updated",
+        description: `${editFirstName} ${editLastName} has been updated successfully.`
+      });
+      
+      // Refresh data
+      fetchData();
+      
+      // Close dialog
+      setIsEditTeacherOpen(false);
+      setEditingTeacher(null);
+      
+    } catch (error) {
+      console.error("Error updating teacher:", error);
+      toast({
+        title: "Error updating teacher",
+        description: "There was a problem updating the teacher.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const openDeleteDialog = (teacher: Teacher) => {
+    setTeacherToDelete(teacher);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleDeleteTeacher = async () => {
+    if (!teacherToDelete) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Delete teacher from the database
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', teacherToDelete.id)
+        .eq('role', 'teacher'); // Make sure we only delete teachers
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Teacher deleted",
+        description: `${teacherToDelete.firstName} ${teacherToDelete.lastName} has been deleted.`
+      });
+      
+      // Refresh data
+      fetchData();
+      
+      // Close dialog
+      setIsDeleteDialogOpen(false);
+      setTeacherToDelete(null);
+      
+    } catch (error) {
+      console.error("Error deleting teacher:", error);
+      toast({
+        title: "Error deleting teacher",
+        description: "There was a problem deleting the teacher.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -79,10 +200,19 @@ export default function TeachersPage() {
                     <UserAvatar user={teacher} size="lg" />
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="flex space-x-2">
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => openEditDialog(teacher)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-red-500">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-red-500"
+                          onClick={() => openDeleteDialog(teacher)}
+                        >
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
@@ -143,6 +273,114 @@ export default function TeachersPage() {
           onClose={() => setIsAddTeacherOpen(false)}
           onTeacherAdded={handleTeacherAdded}
         />
+        
+        {/* Edit Teacher Dialog */}
+        <Dialog open={isEditTeacherOpen} onOpenChange={(isOpen) => !isOpen && setIsEditTeacherOpen(false)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Teacher</DialogTitle>
+              <DialogDescription>
+                Update teacher information.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleEditTeacher} className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="editFirstName">First Name</Label>
+                  <Input
+                    id="editFirstName"
+                    value={editFirstName}
+                    onChange={(e) => setEditFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="editLastName">Last Name</Label>
+                  <Input
+                    id="editLastName"
+                    value={editLastName}
+                    onChange={(e) => setEditLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="editEmail">Email</Label>
+                <Input
+                  id="editEmail"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditTeacherOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Updating..." : "Update Teacher"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={(isOpen) => !isOpen && setIsDeleteDialogOpen(false)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Delete Teacher</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this teacher? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              {teacherToDelete && (
+                <div className="flex items-center gap-3 p-3 rounded-md bg-muted">
+                  <UserAvatar user={teacherToDelete} size="sm" />
+                  <div>
+                    <div className="font-medium">
+                      {teacherToDelete.firstName} {teacherToDelete.lastName}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {teacherToDelete.email}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={handleDeleteTeacher}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Deleting..." : "Delete Teacher"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DashboardShell>
     </DashboardLayout>
   );

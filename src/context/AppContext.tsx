@@ -1,4 +1,3 @@
-
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from "react";
 import { attendanceRecords as initialAttendanceRecords } from "@/data/mockAttendance";
 import { weeklyHolidays as initialWeeklyHolidays, holidays as initialHolidays } from "@/data/mockHolidays";
@@ -94,7 +93,6 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [weeklyHolidays, setWeeklyHolidays] = useState<WeeklyHoliday[]>(initialWeeklyHolidays);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Function to fetch all data from Supabase
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -121,9 +119,19 @@ export function AppProvider({ children }: PropsWithChildren) {
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('*')
+        .eq('role', 'student')
         .order('last_name');
       
       if (studentsError) throw studentsError;
+      
+      // Fetch teachers - now fetching from students table with role='teacher'
+      const { data: teachersData, error: teachersError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('role', 'teacher')
+        .order('last_name');
+      
+      if (teachersError) throw teachersError;
       
       // Fetch attendance records
       const { data: attendanceData, error: attendanceError } = await supabase
@@ -131,14 +139,6 @@ export function AppProvider({ children }: PropsWithChildren) {
         .select('*');
       
       if (attendanceError) throw attendanceError;
-      
-      // Fetch teachers from profiles table
-      const { data: teachersData, error: teachersError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'teacher');
-      
-      if (teachersError) throw teachersError;
       
       // Transform the data to match our app's data structure
       const formattedClasses = classesData.map((cls) => ({
@@ -165,9 +165,9 @@ export function AppProvider({ children }: PropsWithChildren) {
       
       const formattedTeachers = teachersData.map((teacher) => ({
         id: teacher.id,
-        firstName: teacher.first_name || '',
-        lastName: teacher.last_name || '',
-        email: '',  // Email not stored in profiles
+        firstName: teacher.first_name,
+        lastName: teacher.last_name,
+        email: teacher.email,
         role: 'teacher' as const,
         classes: [], // Will populate from classes
       }));
@@ -206,14 +206,12 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
-  // Fetch data when the component mounts or when user changes
   useEffect(() => {
     if (user) {
       fetchData();
     }
   }, [user, fetchData]);
 
-  // Attendance methods
   const getAttendanceForClass = useCallback((classId: string, date: string): Record<string, AttendanceStatus> => {
     return attendanceRecords
       .filter((record) => record.classId === classId && record.date === date)
@@ -290,7 +288,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     [attendanceRecords, fetchData]
   );
 
-  // Holiday methods
   const addHoliday = useCallback((holiday: Holiday) => {
     setHolidays((prev) => [...prev, holiday]);
     
@@ -309,7 +306,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
-  // Grade methods
   const addGrade = useCallback(async (grade: Grade) => {
     try {
       const { data, error } = await supabase
@@ -410,7 +406,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
   }, [fetchData]);
 
-  // Class methods
   const getClassById = useCallback(
     (classId: string) => {
       return classes.find((c) => c.id === classId);
@@ -550,7 +545,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
   }, [fetchData]);
 
-  // Teacher methods
   const assignTeacherToClass = useCallback(
     async (teacherId: string, classId: string) => {
       try {
