@@ -13,6 +13,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Teacher } from "@/types/user";
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddTeacherFormProps {
   open: boolean;
@@ -42,10 +43,14 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
     setIsSubmitting(true);
     
     try {
+      // Generate a UUID for the new teacher
+      const teacherId = uuidv4();
+      
       // Step 1: Insert into profiles table
       const { data, error } = await supabase
         .from('profiles')
         .insert({
+          id: teacherId,
           first_name: firstName,
           last_name: lastName,
           role: 'teacher'
@@ -57,7 +62,7 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
       
       // Step 2: Create teacher object for the app context
       const newTeacher: Teacher = {
-        id: data.id,
+        id: teacherId,
         firstName: data.first_name || "",
         lastName: data.last_name || "",
         email: email,
