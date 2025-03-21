@@ -1,9 +1,8 @@
-
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import { User } from "@/types/user";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { allUsers } from "@/data/mockData";
+import { allUsers } from "@/data";
 
 interface AuthContextType {
   user: User | null;
@@ -23,18 +22,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on app load
   useEffect(() => {
     const checkSession = async () => {
       setIsLoading(true);
       
       try {
-        // Get session from Supabase
         const { data } = await supabase.auth.getSession();
         
         if (data.session) {
-          // For now, let's use mock data for all users
-          // This helps us avoid the infinite recursion issue with Supabase RLS
           setUser(null);
         } else {
           setUser(null);
@@ -47,14 +42,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     };
     
-    // Check session on load
     checkSession();
     
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
-          // For now, use mock data for all users
           setUser(null);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
@@ -62,7 +54,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     );
     
-    // Cleanup subscription
     return () => {
       subscription.unsubscribe();
     };
@@ -72,7 +63,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setIsLoading(true);
     
     try {
-      // For demo purposes, allow login with the demo accounts from mockData
       const mockUser = allUsers.find(u => u.email === email);
       
       if (mockUser) {
@@ -87,7 +77,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return true;
       }
       
-      // If not a demo account, show error
       toast({
         title: "Login failed",
         description: "Please use one of the demo accounts listed on the login page.",
@@ -109,7 +98,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = async () => {
     try {
-      // Just set user to null for both mock and real users
       setUser(null);
       toast({
         title: "Logged out",
