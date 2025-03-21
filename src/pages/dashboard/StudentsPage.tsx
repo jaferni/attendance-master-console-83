@@ -11,14 +11,17 @@ import { AppContext } from "@/context/AppContext";
 import { Edit, Plus, Search, Trash } from "lucide-react";
 import { useContext, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { AddStudentForm } from "@/components/forms/AddStudentForm";
+import { Student } from "@/types/user";
 
 export default function StudentsPage() {
   const { user } = useContext(AuthContext);
-  const { students, grades, classes, getAttendanceForStudent } = useContext(AppContext);
+  const { students, grades, classes, getAttendanceForStudent, fetchData } = useContext(AppContext);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState<string>("all");
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   
   if (!user || user.role !== "superadmin") {
     return <Navigate to="/dashboard" />;
@@ -46,6 +49,11 @@ export default function StudentsPage() {
   const gradeClasses = selectedGrade !== "all"
     ? classes.filter((cls) => cls.grade.id === selectedGrade)
     : [];
+
+  const handleStudentAdded = (student: Student) => {
+    // Refresh data from the server
+    fetchData();
+  };
   
   return (
     <DashboardLayout>
@@ -94,7 +102,10 @@ export default function StudentsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button className="shrink-0">
+            <Button 
+              className="shrink-0"
+              onClick={() => setIsAddStudentOpen(true)}
+            >
               <Plus className="h-4 w-4 mr-2" /> Add Student
             </Button>
           </div>
@@ -182,6 +193,15 @@ export default function StudentsPage() {
             )}
           </div>
         </div>
+        
+        {/* Add Student Dialog */}
+        <AddStudentForm
+          open={isAddStudentOpen}
+          onClose={() => setIsAddStudentOpen(false)}
+          onStudentAdded={handleStudentAdded}
+          grades={grades}
+          classes={classes}
+        />
       </DashboardShell>
     </DashboardLayout>
   );

@@ -9,12 +9,15 @@ import { AppContext } from "@/context/AppContext";
 import { Edit, GraduationCap, Mail, Phone, Plus, Search, Trash } from "lucide-react";
 import { useContext, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { AddTeacherForm } from "@/components/forms/AddTeacherForm";
+import { Teacher } from "@/types/user";
 
 export default function TeachersPage() {
   const { user } = useContext(AuthContext);
-  const { teachers, getClassesForTeacher } = useContext(AppContext);
+  const { teachers, getClassesForTeacher, fetchData } = useContext(AppContext);
   
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
   
   if (!user || user.role !== "superadmin") {
     return <Navigate to="/dashboard" />;
@@ -30,6 +33,11 @@ export default function TeachersPage() {
       teacher.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+
+  const handleTeacherAdded = (teacher: Teacher) => {
+    // Refresh data from the server
+    fetchData();
+  };
   
   return (
     <DashboardLayout>
@@ -49,7 +57,10 @@ export default function TeachersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button className="shrink-0">
+            <Button 
+              className="shrink-0"
+              onClick={() => setIsAddTeacherOpen(true)}
+            >
               <Plus className="h-4 w-4 mr-2" /> Add Teacher
             </Button>
           </div>
@@ -125,6 +136,13 @@ export default function TeachersPage() {
             </div>
           )}
         </div>
+        
+        {/* Add Teacher Dialog */}
+        <AddTeacherForm
+          open={isAddTeacherOpen}
+          onClose={() => setIsAddTeacherOpen(false)}
+          onTeacherAdded={handleTeacherAdded}
+        />
       </DashboardShell>
     </DashboardLayout>
   );
