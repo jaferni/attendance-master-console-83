@@ -1,6 +1,7 @@
 
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from "react";
-import { attendanceRecords as initialAttendanceRecords, weeklyHolidays as initialWeeklyHolidays, holidays as initialHolidays } from "@/data/mockData";
+import { attendanceRecords as initialAttendanceRecords } from "@/data/mockAttendance";
+import { weeklyHolidays as initialWeeklyHolidays, holidays as initialHolidays } from "@/data/mockHolidays";
 import { AttendanceRecord, AttendanceStatus } from "@/types/attendance";
 import { Class, Grade } from "@/types/class";
 import { Holiday, WeeklyHoliday } from "@/types/holiday";
