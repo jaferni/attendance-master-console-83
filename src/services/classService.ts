@@ -1,5 +1,4 @@
-
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Class } from "@/types/class";
 import { Student } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +20,6 @@ export async function addClass(
   setClasses: (updater: (prev: Class[]) => Class[]) => void
 ): Promise<void> {
   try {
-    // Insert class into the database
     const { data, error } = await supabase
       .from('classes')
       .insert({
@@ -39,7 +37,6 @@ export async function addClass(
     
     if (error) throw error;
     
-    // Transform to match our app's data structure
     const newClass: Class = {
       id: data.id,
       name: data.name,
@@ -99,7 +96,6 @@ export async function updateClass(
       description: `${updatedClass.name} has been updated successfully.`,
     });
     
-    // Refresh data to ensure consistency
     fetchData();
     
   } catch (error) {
@@ -132,7 +128,6 @@ export async function deleteClass(
       description: "The class has been deleted successfully.",
     });
     
-    // Refresh data to ensure associated students are updated
     fetchData();
     
   } catch (error) {
@@ -165,7 +160,6 @@ export async function assignTeacherToClass(
       )
     );
     
-    // Update teachers' classes array in memory
     setTeachers((prevTeachers) =>
       prevTeachers.map((t) =>
         t.id === teacherId

@@ -1,6 +1,6 @@
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import { User } from "@/types/user";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { allUsers } from "@/data";
 

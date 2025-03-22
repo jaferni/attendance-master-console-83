@@ -1,5 +1,4 @@
-
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { AttendanceRecord, AttendanceStatus } from "@/types/attendance";
 import { Class, Grade } from "@/types/class";
 import { Student, Teacher } from "@/types/user";

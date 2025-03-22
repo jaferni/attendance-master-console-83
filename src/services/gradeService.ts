@@ -1,5 +1,4 @@
-
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Grade } from "@/types/class";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -48,14 +47,12 @@ export async function updateGrade(
     
     if (error) throw error;
     
-    // Update grades state
     setGrades((prev) => 
       prev.map((grade) => 
         grade.id === updatedGrade.id ? updatedGrade : grade
       )
     );
     
-    // Update classes that use this grade
     setClasses((prev) =>
       prev.map((cls) =>
         cls.grade.id === updatedGrade.id
@@ -69,7 +66,6 @@ export async function updateGrade(
       description: `${updatedGrade.name} grade has been updated successfully.`,
     });
     
-    // Refresh data to ensure consistency
     fetchData();
     
   } catch (error) {
@@ -102,7 +98,6 @@ export async function deleteGrade(
       description: "The grade has been deleted successfully.",
     });
     
-    // Refresh data to ensure associated classes are updated
     fetchData();
     
   } catch (error) {

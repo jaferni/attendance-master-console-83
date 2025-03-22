@@ -1,5 +1,4 @@
-
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { AttendanceRecord, AttendanceStatus } from "@/types/attendance";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,14 +32,12 @@ export async function saveAttendance(
   fetchData: () => Promise<void>
 ): Promise<void> {
   try {
-    // First, delete any existing records for this class and date
     await supabase
       .from('attendance_records')
       .delete()
       .eq('class_id', classId)
       .eq('date', date);
     
-    // Prepare the new records
     const newRecords = Object.entries(statusRecords).map(([studentId, status]) => ({
       date,
       class_id: classId,
@@ -50,20 +47,18 @@ export async function saveAttendance(
       marked_at: new Date().toISOString(),
     }));
     
-    // Insert the new records
     const { error } = await supabase
       .from('attendance_records')
       .insert(newRecords);
     
     if (error) throw error;
     
-    // Update the local state
     const updatedRecords = attendanceRecords.filter(
       (record) => !(record.classId === classId && record.date === date)
     );
     
     const formattedNewRecords = newRecords.map((record, index) => ({
-      id: `temp-id-${index}`, // This will be replaced when we fetch data
+      id: `temp-id-${index}`,
       date: record.date,
       classId: record.class_id,
       studentId: record.student_id,
@@ -74,7 +69,6 @@ export async function saveAttendance(
     
     setAttendanceRecords([...updatedRecords, ...formattedNewRecords]);
     
-    // Refetch to get the actual IDs
     fetchData();
     
     toast({
