@@ -43,13 +43,13 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
     setIsSubmitting(true);
     
     try {
-      // Insert teacher into the profiles table with role = 'teacher'
+      // Insert teacher into the teachers table 
       const { data: teacherData, error: teacherError } = await supabase
-        .from('profiles')
+        .from('teachers')
         .insert({
           first_name: firstName,
           last_name: lastName,
-          role: "teacher" // Mark this as a teacher profile
+          email: email
         })
         .select()
         .single();
@@ -61,7 +61,7 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
         id: teacherData.id,
         firstName: teacherData.first_name,
         lastName: teacherData.last_name,
-        email: email || '', // Keep email in the frontend model
+        email: teacherData.email || '',
         role: "teacher",
         classes: []
       };

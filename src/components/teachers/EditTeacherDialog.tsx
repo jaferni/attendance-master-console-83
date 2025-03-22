@@ -44,15 +44,15 @@ export function EditTeacherDialog({ open, onOpenChange, teacher, onTeacherUpdate
     setIsSubmitting(true);
     
     try {
-      // Update teacher in the profiles table
+      // Update teacher in the teachers table
       const { error } = await supabase
-        .from('profiles')
+        .from('teachers')
         .update({
           first_name: firstName,
-          last_name: lastName
+          last_name: lastName,
+          email: email
         })
-        .eq('id', teacher.id)
-        .eq('role', 'teacher'); // Make sure we only update teachers
+        .eq('id', teacher.id);
       
       if (error) throw error;
       
@@ -120,7 +120,6 @@ export function EditTeacherDialog({ open, onOpenChange, teacher, onTeacherUpdate
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled // Email is shown but not editable
             />
           </div>
           

@@ -31,12 +31,11 @@ export function DeleteTeacherDialog({ open, onOpenChange, teacher, onTeacherDele
     setIsSubmitting(true);
     
     try {
-      // Delete teacher from the profiles table
+      // Delete teacher from the teachers table
       const { error } = await supabase
-        .from('profiles')
+        .from('teachers')
         .delete()
-        .eq('id', teacher.id)
-        .eq('role', 'teacher'); // Make sure we only delete teachers
+        .eq('id', teacher.id);
       
       if (error) throw error;
       

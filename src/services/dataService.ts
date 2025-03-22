@@ -42,11 +42,10 @@ export async function fetchAppData(
     
     if (studentsError) throw studentsError;
     
-    // Fetch teachers from profiles table where role='teacher'
+    // Fetch teachers from the teachers table
     const { data: teachersData, error: teachersError } = await supabase
-      .from('profiles')
+      .from('teachers')
       .select('*')
-      .eq('role', 'teacher')
       .order('last_name');
     
     if (teachersError) throw teachersError;
@@ -81,12 +80,12 @@ export async function fetchAppData(
       classId: student.class_id,
     }));
     
-    // Handle teacher data from profiles
+    // Handle teacher data from the teachers table
     const formattedTeachers = teachersData.map((teacher) => ({
       id: teacher.id,
       firstName: teacher.first_name || "",
       lastName: teacher.last_name || "",
-      email: "", // Email not stored in profiles table
+      email: teacher.email || "",
       role: 'teacher' as const,
       classes: [], // Will populate from classes
     }));
