@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import {
   DialogDescription 
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function TeachersPage() {
@@ -58,7 +57,7 @@ export default function TeachersPage() {
     );
   });
 
-  const handleTeacherAdded = (teacher: Teacher) => {
+  const handleTeacherAdded = () => {
     // Refresh data from the server
     fetchData();
   };
@@ -79,13 +78,12 @@ export default function TeachersPage() {
     setIsSubmitting(true);
     
     try {
-      // Update teacher in the database
+      // Update teacher in the database - using profiles table
       const { error } = await supabase
-        .from('students')
+        .from('profiles')
         .update({
           first_name: editFirstName,
-          last_name: editLastName,
-          email: editEmail
+          last_name: editLastName
         })
         .eq('id', editingTeacher.id)
         .eq('role', 'teacher'); // Make sure we only update teachers
@@ -127,9 +125,9 @@ export default function TeachersPage() {
     setIsSubmitting(true);
     
     try {
-      // Delete teacher from the database
+      // Delete teacher from the database - using profiles table
       const { error } = await supabase
-        .from('students')
+        .from('profiles')
         .delete()
         .eq('id', teacherToDelete.id)
         .eq('role', 'teacher'); // Make sure we only delete teachers
