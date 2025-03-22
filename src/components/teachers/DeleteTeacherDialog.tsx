@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Teacher } from "@/types/user";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 
@@ -31,7 +31,7 @@ export function DeleteTeacherDialog({ open, onOpenChange, teacher, onTeacherDele
     setIsSubmitting(true);
     
     try {
-      // Delete teacher from the database - using profiles table
+      // Delete teacher from the profiles table
       const { error } = await supabase
         .from('profiles')
         .delete()

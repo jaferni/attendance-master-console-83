@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Teacher } from "@/types/user";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 
@@ -44,7 +44,7 @@ export function EditTeacherDialog({ open, onOpenChange, teacher, onTeacherUpdate
     setIsSubmitting(true);
     
     try {
-      // Update teacher in the database - using profiles table
+      // Update teacher in the profiles table
       const { error } = await supabase
         .from('profiles')
         .update({

@@ -1,4 +1,5 @@
-import { toast } from "@/hooks/use-toast";
+
+import { toast } from "@/components/ui/use-toast";
 import { AttendanceRecord, AttendanceStatus } from "@/types/attendance";
 import { Class, Grade } from "@/types/class";
 import { Student, Teacher } from "@/types/user";
@@ -41,7 +42,7 @@ export async function fetchAppData(
     
     if (studentsError) throw studentsError;
     
-    // Since there's no teachers table, we'll query from profiles with role='teacher'
+    // Fetch teachers from profiles table where role='teacher'
     const { data: teachersData, error: teachersError } = await supabase
       .from('profiles')
       .select('*')
@@ -80,12 +81,12 @@ export async function fetchAppData(
       classId: student.class_id,
     }));
     
-    // Handle teacher data which may come from profiles
+    // Handle teacher data from profiles
     const formattedTeachers = teachersData.map((teacher) => ({
       id: teacher.id,
       firstName: teacher.first_name || "",
       lastName: teacher.last_name || "",
-      email: "",
+      email: "", // Email not stored in profiles table
       role: 'teacher' as const,
       classes: [], // Will populate from classes
     }));
@@ -116,8 +117,7 @@ export async function fetchAppData(
     console.error('Error fetching data:', error);
     toast({
       title: "Error fetching data",
-      description: "Could not retrieve data from the database.",
-      variant: "destructive"
+      description: "Could not retrieve data from the database."
     });
   } finally {
     setIsLoading(false);
