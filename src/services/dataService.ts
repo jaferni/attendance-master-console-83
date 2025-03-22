@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { AttendanceRecord, AttendanceStatus } from "@/types/attendance";
 import { Class, Grade } from "@/types/class";
@@ -43,7 +42,6 @@ export async function fetchAppData(
     if (studentsError) throw studentsError;
     
     // Since there's no teachers table, we'll query from profiles with role='teacher'
-    // or from students table with a teacher role depending on your data structure
     const { data: teachersData, error: teachersError } = await supabase
       .from('profiles')
       .select('*')
@@ -87,7 +85,7 @@ export async function fetchAppData(
       id: teacher.id,
       firstName: teacher.first_name || "",
       lastName: teacher.last_name || "",
-      email: teacher.email || "",
+      email: "",
       role: 'teacher' as const,
       classes: [], // Will populate from classes
     }));
