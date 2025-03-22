@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { AttendanceRecord, AttendanceStatus } from "@/types/attendance";
 import { Class, Grade } from "@/types/class";
@@ -37,16 +38,14 @@ export async function fetchAppData(
     const { data: studentsData, error: studentsError } = await supabase
       .from('students')
       .select('*')
-      .eq('role', 'student')
       .order('last_name');
     
     if (studentsError) throw studentsError;
     
-    // Fetch teachers - now fetching from students table with role='teacher'
+    // Fetch teachers 
     const { data: teachersData, error: teachersError } = await supabase
-      .from('students')
+      .from('teachers')
       .select('*')
-      .eq('role', 'teacher')
       .order('last_name');
     
     if (teachersError) throw teachersError;

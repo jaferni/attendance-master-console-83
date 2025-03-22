@@ -4,12 +4,10 @@ import {
   ToastActionElement, 
   ToastProps 
 } from "@/components/ui/toast"
-import {
-  useToast as useToastImpl,
-  ToastOptions as ToastOptionsImpl
-} from "@radix-ui/react-toast"
 
-export type ToastOptions = Omit<ToastProps, "id"> & {
+export type ToastOptions = ToastProps & {
+  title?: React.ReactNode
+  description?: React.ReactNode
   action?: ToastActionElement
 }
 
