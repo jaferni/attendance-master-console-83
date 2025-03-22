@@ -1,3 +1,4 @@
+
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from "react";
 import { attendanceRecords as initialAttendanceRecords } from "@/data/mockAttendance";
 import { weeklyHolidays as initialWeeklyHolidays, holidays as initialHolidays } from "@/data/mockHolidays";
@@ -8,6 +9,9 @@ import { Student, Teacher } from "@/types/user";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthContext } from "./AuthContext";
+
+// Create simplified types for context to avoid deep recursion
+type ClassWithoutStudents = Omit<Class, 'students'> & { students: string[] };
 
 interface AppContextType {
   grades: Grade[];
