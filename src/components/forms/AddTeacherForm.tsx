@@ -25,13 +25,14 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || !password) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields.",
@@ -49,7 +50,8 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
         .insert({
           first_name: firstName,
           last_name: lastName,
-          email: email
+          email: email,
+          password: password // Add password to the teacher record
         })
         .select()
         .single();
@@ -72,13 +74,14 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
       // Show success message
       toast({
         title: "Teacher added",
-        description: `${firstName} ${lastName} has been added successfully.`
+        description: `${firstName} ${lastName} has been added successfully and can now login with their email and password.`
       });
       
       // Reset form
       setFirstName("");
       setLastName("");
       setEmail("");
+      setPassword("");
       
       // Close dialog
       onClose();
@@ -101,7 +104,7 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
         <DialogHeader>
           <DialogTitle>Add New Teacher</DialogTitle>
           <DialogDescription>
-            Add a new teacher to the system. Teachers will be able to manage classes and students.
+            Add a new teacher to the system. Teachers will be able to login and manage classes.
           </DialogDescription>
         </DialogHeader>
         
@@ -136,6 +139,18 @@ export function AddTeacherForm({ open, onClose, onTeacherAdded }: AddTeacherForm
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter email address"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password for login"
               required
             />
           </div>

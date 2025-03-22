@@ -26,6 +26,8 @@ export function EditTeacherDialog({ open, onOpenChange, teacher, onTeacherUpdate
   const [firstName, setFirstName] = useState(teacher?.firstName || "");
   const [lastName, setLastName] = useState(teacher?.lastName || "");
   const [email, setEmail] = useState(teacher?.email || "");
+  const [password, setPassword] = useState("");
+  const [isChangePassword, setIsChangePassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -34,6 +36,8 @@ export function EditTeacherDialog({ open, onOpenChange, teacher, onTeacherUpdate
     setFirstName(teacher.firstName);
     setLastName(teacher.lastName);
     setEmail(teacher.email);
+    setPassword("");
+    setIsChangePassword(false);
   }
 
   const handleEditTeacher = async (e: React.FormEvent) => {
@@ -44,14 +48,22 @@ export function EditTeacherDialog({ open, onOpenChange, teacher, onTeacherUpdate
     setIsSubmitting(true);
     
     try {
+      // Prepare update data
+      const updateData: Record<string, any> = {
+        first_name: firstName,
+        last_name: lastName,
+        email: email
+      };
+      
+      // Only include password in the update if the password change option is checked
+      if (isChangePassword && password) {
+        updateData.password = password;
+      }
+      
       // Update teacher in the teachers table
       const { error } = await supabase
         .from('teachers')
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          email: email
-        })
+        .update(updateData)
         .eq('id', teacher.id);
       
       if (error) throw error;
@@ -122,6 +134,33 @@ export function EditTeacherDialog({ open, onOpenChange, teacher, onTeacherUpdate
               required
             />
           </div>
+          
+          <div className="flex items-center gap-2 mt-4">
+            <input
+              id="changePassword"
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              checked={isChangePassword}
+              onChange={() => setIsChangePassword(!isChangePassword)}
+            />
+            <Label htmlFor="changePassword" className="text-sm font-medium cursor-pointer">
+              Change password
+            </Label>
+          </div>
+          
+          {isChangePassword && (
+            <div className="space-y-2">
+              <Label htmlFor="editPassword">New Password</Label>
+              <Input
+                id="editPassword"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter new password"
+                required={isChangePassword}
+              />
+            </div>
+          )}
           
           <DialogFooter>
             <Button

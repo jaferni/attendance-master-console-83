@@ -123,6 +123,9 @@ export default function Login() {
                       (Student)
                     </li>
                   </ul>
+                  <p className="mt-2">
+                    <strong>Or:</strong> Use a teacher email and password created in the Teacher Management section.
+                  </p>
                 </div>
               </CardContent>
               <CardFooter>

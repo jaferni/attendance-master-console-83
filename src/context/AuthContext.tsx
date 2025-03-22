@@ -1,3 +1,4 @@
+
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import { User } from "@/types/user";
 import { toast } from "@/hooks/use-toast";
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setIsLoading(true);
     
     try {
+      // First try the mock users for demo purposes
       const mockUser = allUsers.find(u => u.email === email);
       
       if (mockUser) {
@@ -77,9 +79,50 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return true;
       }
       
+      // If not a mock user, check if it's a teacher
+      const { data: teacherData, error: teacherError } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .single();
+      
+      if (teacherError) {
+        // No teacher found with this email/password
+        toast({
+          title: "Login failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return false;
+      }
+      
+      if (teacherData) {
+        // Teacher login successful
+        const teacherUser: User = {
+          id: teacherData.id,
+          firstName: teacherData.first_name,
+          lastName: teacherData.last_name,
+          email: teacherData.email || '',
+          role: 'teacher',
+        };
+        
+        setUser(teacherUser);
+        
+        toast({
+          title: "Logged in successfully",
+          description: `Welcome, ${teacherUser.firstName}!`,
+        });
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // If we get here, no valid user was found
       toast({
         title: "Login failed",
-        description: "Please use one of the demo accounts listed on the login page.",
+        description: "Please use one of the demo accounts listed on the login page or a valid teacher account.",
         variant: "destructive",
       });
       setIsLoading(false);
