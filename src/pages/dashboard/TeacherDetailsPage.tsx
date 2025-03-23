@@ -1,219 +1,173 @@
 
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, GraduationCap, User, Mail, Phone, CalendarClock } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { AuthContext } from "@/context/AuthContext";
-import { AppContext } from "@/context/AppContext";
-import { toast } from "@/hooks/use-toast";
-import { GraduationCap, Mail, Phone, Users } from "lucide-react";
-import { useContext, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { allTeachers, allClasses } from "@/data";
+import { Teacher } from "@/types/user";
+import { Class } from "@/types/class";
 
 export default function TeacherDetailsPage() {
-  const { user } = useContext(AuthContext);
-  const { teachers, classes, getClassesForTeacher, assignTeacherToClass, fetchData } = useContext(AppContext);
   const { teacherId } = useParams<{ teacherId: string }>();
   const navigate = useNavigate();
-  
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [isAssigning, setIsAssigning] = useState(false);
-  
-  // Find the teacher
-  const teacher = teachers.find((t) => t.id === teacherId);
-  
-  // Get teacher's classes
-  const teacherClasses = teacher ? getClassesForTeacher(teacher.id) : [];
-  
-  // Get unassigned classes (classes without a teacher or with a different teacher)
-  const availableClasses = classes.filter(
-    (cls) => !cls.teacherId || (teacherClasses.length > 0 && !teacherClasses.some(tc => tc.id === cls.id))
-  );
-  
-  if (!user || user.role !== "superadmin") {
-    return <Navigate to="/dashboard" />;
-  }
-  
+  const [activeTab, setActiveTab] = useState<string>("profile");
+
+  // In a real application, you would fetch this data from your backend
+  const getTeacher = (id: string): Teacher | undefined => {
+    return allTeachers.find(t => t.id === id);
+  };
+
+  const getTeacherClasses = (teacherId: string): Class[] => {
+    return allClasses.filter(c => c.teacherId === teacherId);
+  };
+
+  const teacher = getTeacher(teacherId || "");
+  const teacherClasses = getTeacherClasses(teacherId || "");
+
   if (!teacher) {
     return (
-      <DashboardLayout>
-        <DashboardShell
-          title="Teacher Not Found"
-          description="The teacher you are looking for does not exist."
+      <DashboardShell title="Teacher not found" description="The teacher you are looking for does not exist.">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-4"
+          onClick={() => navigate("/dashboard/teachers")}
         >
-          <Button onClick={() => navigate("/dashboard/teachers")}>
-            Back to Teachers
-          </Button>
-        </DashboardShell>
-      </DashboardLayout>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Teachers
+        </Button>
+      </DashboardShell>
     );
   }
-  
-  const handleAssignClass = async () => {
-    if (!selectedClassId) {
-      toast({
-        title: "No class selected",
-        description: "Please select a class to assign to this teacher",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsAssigning(true);
-    
-    try {
-      await assignTeacherToClass(teacher.id, selectedClassId);
-      
-      // Refresh data to update UI
-      await fetchData();
-      
-      // Reset selection
-      setSelectedClassId("");
-      
-      toast({
-        title: "Class assigned",
-        description: `Class has been successfully assigned to ${teacher.firstName} ${teacher.lastName}`,
-      });
-    } catch (error) {
-      console.error("Error assigning class:", error);
-      toast({
-        title: "Error assigning class",
-        description: "An error occurred while trying to assign the class",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-  
+
   return (
-    <DashboardLayout>
-      <DashboardShell
-        title={`${teacher.firstName} ${teacher.lastName}`}
-        description="Teacher details and assigned classes"
-        backHref="/dashboard/teachers"
+    <DashboardShell 
+      title={`${teacher.firstName} ${teacher.lastName}`} 
+      description={`Teacher • ${teacherClasses.length} classes assigned`}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-4"
+        onClick={() => navigate("/dashboard/teachers")}
       >
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Teacher Profile */}
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Teachers
+      </Button>
+
+      <Tabs
+        defaultValue={activeTab}
+        onValueChange={(value) => setActiveTab(value)}
+        className="space-y-4"
+      >
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="classes">Classes</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
           <Card>
             <CardHeader>
-              <CardTitle>Teacher Profile</CardTitle>
+              <div className="flex items-center space-x-4">
+                <UserAvatar user={teacher} size="lg" />
+                <div>
+                  <CardTitle>{teacher.firstName} {teacher.lastName}</CardTitle>
+                  <CardDescription>Teacher Profile</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-start gap-6">
-                <UserAvatar user={teacher} size="xl" />
-                <div className="space-y-3">
-                  <h3 className="text-2xl font-medium">
-                    {teacher.firstName} {teacher.lastName}
-                  </h3>
-                  <div className="text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Mail className="h-4 w-4" />
-                      <span>{teacher.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      <span>+1 (555) 123-4567</span>
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <span>{teacher.email}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <span>+1 (555) 123-4567</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                  <span>Science Department</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span>Joined March 2022</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-          
-          {/* Assign Class */}
+        </TabsContent>
+
+        <TabsContent value="classes">
           <Card>
             <CardHeader>
-              <CardTitle>Assign Class</CardTitle>
+              <CardTitle>Assigned Classes</CardTitle>
+              <CardDescription>
+                {teacherClasses.length > 0 
+                  ? `${teacherClasses.length} classes assigned to ${teacher.firstName}`
+                  : `No classes assigned to ${teacher.firstName} yet`}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-5 gap-4">
-                  <div className="col-span-4">
-                    <Select
-                      value={selectedClassId}
-                      onValueChange={setSelectedClassId}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a class to assign" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableClasses.length > 0 ? (
-                          availableClasses.map((cls) => (
-                            <SelectItem key={cls.id} value={cls.id}>
-                              {cls.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-classes" disabled>
-                            No available classes
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button 
-                    onClick={handleAssignClass}
-                    disabled={!selectedClassId || isAssigning}
-                    className="col-span-1"
-                  >
-                    Assign
+              {teacherClasses.length > 0 ? (
+                <div className="space-y-4">
+                  {teacherClasses.map(cls => (
+                    <div key={cls.id} className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-1">
+                        <h4 className="font-medium">{cls.name}</h4>
+                        <p className="text-sm text-muted-foreground">Grade {cls.grade} • {cls.students.length} students</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/dashboard/classes/${cls.id}`)}
+                      >
+                        View Class
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <GraduationCap className="h-12 w-12 text-muted-foreground/50" />
+                  <h3 className="mt-4 text-lg font-medium">No Classes Assigned</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    This teacher doesn't have any classes assigned yet.
+                  </p>
+                  <Button className="mt-4" onClick={() => navigate("/dashboard/classes")}>
+                    Assign Class
                   </Button>
                 </div>
-                
-                <div className="text-sm text-muted-foreground">
-                  Assigning a class will make this teacher responsible for taking attendance and managing the students in that class.
-                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="schedule">
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Schedule</CardTitle>
+              <CardDescription>View and manage teacher's schedule</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <CalendarClock className="h-12 w-12 text-muted-foreground/50" />
+                <h3 className="mt-4 text-lg font-medium">Schedule Feature Coming Soon</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This feature is currently under development.
+                </p>
               </div>
             </CardContent>
           </Card>
-        </div>
-        
-        {/* Assigned Classes */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
-              Assigned Classes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {teacherClasses.length > 0 ? (
-              <div className="space-y-4">
-                {teacherClasses.map((cls) => (
-                  <div key={cls.id} className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{cls.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {cls.students.length} students
-                        </p>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/dashboard/classes/${cls.id}`)}
-                    >
-                      View Class
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No classes assigned to this teacher yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </DashboardShell>
-    </DashboardLayout>
+        </TabsContent>
+      </Tabs>
+    </DashboardShell>
   );
 }

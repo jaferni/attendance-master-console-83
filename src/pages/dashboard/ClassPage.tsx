@@ -1,229 +1,172 @@
 
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { DashboardShell } from "@/components/DashboardShell";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AuthContext } from "@/context/AuthContext";
-import { AppContext } from "@/context/AppContext";
-import { Calendar as CalendarIcon, LoaderCircle } from "lucide-react";
-import { useContext, useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { DashboardShell } from "@/components/DashboardShell";
 import { AttendanceTable } from "@/components/dashboard/AttendanceTable";
-import { UserAvatar } from "@/components/UserAvatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft } from "lucide-react";
+import { fetchClassById } from "@/services/classService";
+import { fetchAttendance } from "@/services/attendanceService";
+import { AttendanceStatus } from "@/types/attendance";
 
 export default function ClassPage() {
-  const { user } = useContext(AuthContext);
-  const { getClassById, getStudentsInClass, getAttendanceForClass, saveAttendance } = useContext(AppContext);
   const { classId } = useParams<{ classId: string }>();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const navigate = useNavigate();
+  const [date, setDate] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState<string>("students");
 
-  // Format date for API calls
-  const formattedDate = format(selectedDate, "yyyy-MM-dd");
-  
-  // Get class and students
-  const currentClass = classId ? getClassById(classId) : undefined;
-  const students = classId ? getStudentsInClass(classId) : [];
-  
-  // Get existing attendance records
-  const existingAttendance = classId 
-    ? getAttendanceForClass(classId, formattedDate) 
-    : {};
-  
-  // Permission check for non-superadmin
-  const hasPermission = user?.role === "superadmin" || 
-    (user?.role === "teacher" && currentClass?.teacherId === user.id);
-  
-  if (!classId || !currentClass) {
-    return (
-      <DashboardLayout>
-        <DashboardShell
-          title="Class Not Found"
-          description="The class you're looking for doesn't exist."
-          backHref="/dashboard/classes"
-        >
-          <div className="flex justify-center py-8">
-            <Button
-              variant="outline"
-              onClick={() => window.history.back()}
-            >
-              Go Back
-            </Button>
-          </div>
-        </DashboardShell>
-      </DashboardLayout>
-    );
-  }
-  
-  if (!hasPermission) {
-    return <Navigate to="/dashboard" />;
-  }
-  
-  // Handle saving attendance
-  const handleSaveAttendance = async (records: Record<string, string>) => {
-    if (!user || !classId) return;
-    
-    await saveAttendance(
-      classId,
-      formattedDate,
-      records,
-      user.id
-    );
+  const { data: classData } = useQuery({
+    queryKey: ["class", classId],
+    queryFn: () => fetchClassById(classId || ""),
+    enabled: !!classId,
+  });
+
+  const { data: attendanceData = [] } = useQuery({
+    queryKey: ["attendance", format(date, "yyyy-MM-dd"), classId],
+    queryFn: () => fetchAttendance(format(date, "yyyy-MM-dd"), classId || null),
+    enabled: !!classId,
+  });
+
+  const handleAttendanceChange = (
+    studentId: string,
+    status: AttendanceStatus
+  ) => {
+    console.log("Updating attendance:", studentId, status);
   };
-  
+
+  const handleDateChange = (newDate: Date | undefined) => {
+    if (newDate) {
+      setDate(newDate);
+    }
+  };
+
+  const handleSaveAttendance = (
+    attendanceData: Record<string, AttendanceStatus>
+  ) => {
+    console.log("Saving attendance data:", attendanceData);
+  };
+
+  if (!classData) {
+    return (
+      <DashboardShell title="Loading..." description="Loading class details">
+        <div className="flex items-center justify-center p-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        </div>
+      </DashboardShell>
+    );
+  }
+
   return (
-    <DashboardLayout>
-      <DashboardShell
-        title={currentClass.name}
-        description={`${currentClass.grade.name} - ${students.length} students`}
-        backHref="/dashboard/classes"
+    <DashboardShell 
+      title={classData.name} 
+      description={`Grade ${classData.grade} • ${classData.students.length} students`}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-4"
+        onClick={() => navigate(-1)}
       >
-        <Tabs defaultValue="students">
-          <TabsList className="mb-6">
-            <TabsTrigger value="students">Students</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-          
-          {/* Students Tab */}
-          <TabsContent value="students">
-            <Card>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Classes
+      </Button>
+
+      <Tabs
+        defaultValue={activeTab}
+        onValueChange={(value) => setActiveTab(value)}
+        className="space-y-4"
+      >
+        <TabsList>
+          <TabsTrigger value="students">Students</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="grades">Grades</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="students">
+          <Card>
+            <CardHeader>
+              <CardTitle>Students</CardTitle>
+              <CardDescription>
+                {classData.students.length} students enrolled
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Student list would go here */}
+              <div className="divide-y">
+                {classData.students.map((student) => (
+                  <div key={student.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium">{student.firstName} {student.lastName}</p>
+                      <p className="text-sm text-muted-foreground">{student.email}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="attendance">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Student List</CardTitle>
+                <CardTitle>
+                  Attendance for {format(date, "MMMM d, yyyy")}
+                </CardTitle>
+                <CardDescription>
+                  Record and manage attendance for {classData.name}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {students.length > 0 ? (
-                  <div className="space-y-4">
-                    {students.map((student) => (
-                      <div 
-                        key={student.id}
-                        className="flex items-center justify-between p-4 rounded-lg border"
-                      >
-                        <div className="flex items-center gap-4">
-                          <UserAvatar user={student} />
-                          <div>
-                            <h4 className="font-medium">
-                              {student.firstName} {student.lastName}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              {student.email}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No students assigned to this class
-                  </div>
+                {classId && (
+                  <AttendanceTable
+                    classId={classId}
+                    date={date}
+                    onAttendanceChange={handleAttendanceChange}
+                    onSaveAttendance={handleSaveAttendance}
+                  />
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-          
-          {/* Attendance Tab */}
-          <TabsContent value="attendance">
+
             <Card>
               <CardHeader>
-                <CardTitle>Attendance Records</CardTitle>
+                <CardTitle>Select Date</CardTitle>
+                <CardDescription>
+                  Choose a date to view or update attendance
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="mb-6">
-                  <label className="text-sm font-medium mb-2 block">Date</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full md:w-auto justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? (
-                          format(selectedDate, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => date && setSelectedDate(date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                
-                <AttendanceTable 
-                  students={students}
-                  date={selectedDate}
-                  classId={classId}
-                  existingRecords={existingAttendance}
-                  onSave={handleSaveAttendance}
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={handleDateChange}
+                  className="rounded-md border"
                 />
               </CardContent>
             </Card>
-          </TabsContent>
-          
-          {/* Settings Tab */}
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Class Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Class details */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Class Name</h3>
-                      <p className="p-2 border rounded-md">{currentClass.name}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Grade</h3>
-                      <p className="p-2 border rounded-md">{currentClass.grade.name}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Teacher</h3>
-                      <p className="p-2 border rounded-md">
-                        {currentClass.teacherId ? (
-                          "Assigned Teacher" // You can replace this with actual teacher name
-                        ) : (
-                          "No teacher assigned"
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Students</h3>
-                      <p className="p-2 border rounded-md">{students.length} students</p>
-                    </div>
-                  </div>
-                  
-                  {/* Actions */}
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="outline">Edit Class</Button>
-                    {user?.role === "superadmin" && (
-                      <Button variant="destructive">Delete Class</Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </DashboardShell>
-    </DashboardLayout>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="grades">
+          <Card>
+            <CardHeader>
+              <CardTitle>Grades</CardTitle>
+              <CardDescription>
+                View and manage grades for {classData.name}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Grades functionality coming soon.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </DashboardShell>
   );
 }
