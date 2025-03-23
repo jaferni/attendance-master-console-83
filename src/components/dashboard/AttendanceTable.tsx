@@ -6,12 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { AttendanceStatus } from "@/types/attendance";
 import { Student } from "@/types/user";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { StatusBadge } from "../StatusBadge";
+import { Loader2 } from "lucide-react";
+import { AuthContext } from "@/context/AuthContext";
 
 interface AttendanceTableProps {
   students: Student[];
   date: Date;
+  classId: string; // Add classId prop
   existingRecords?: Record<string, AttendanceStatus>;
   onSave?: (records: Record<string, AttendanceStatus>) => void;
   readOnly?: boolean;
@@ -20,6 +23,7 @@ interface AttendanceTableProps {
 export function AttendanceTable({
   students,
   date,
+  classId, // Use the classId prop
   existingRecords = {},
   onSave,
   readOnly = false,
@@ -30,7 +34,9 @@ export function AttendanceTable({
   const [selectAll, setSelectAll] = useState<boolean>(
     Object.values(existingRecords).every((status) => status === "present")
   );
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { user } = useContext(AuthContext);
 
   // Update attendance state when existingRecords changes
   useEffect(() => {
@@ -75,14 +81,39 @@ export function AttendanceTable({
   };
 
   // Handle saving attendance
-  const handleSave = () => {
-    if (onSave) {
-      onSave(attendance);
-    } else {
+  const handleSave = async () => {
+    if (!user) {
       toast({
-        title: "Attendance saved",
-        description: "Attendance has been successfully recorded.",
+        title: "Authentication required",
+        description: "You must be logged in to save attendance records.",
+        variant: "destructive"
       });
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      if (onSave) {
+        await onSave(attendance);
+      } else {
+        // Format date to YYYY-MM-DD
+        const formattedDate = date.toISOString().split('T')[0];
+        
+        toast({
+          title: "Attendance saved",
+          description: `Attendance for ${formattedDate} has been successfully recorded.`,
+        });
+      }
+    } catch (error) {
+      console.error("Error saving attendance:", error);
+      toast({
+        title: "Error saving attendance",
+        description: "An error occurred while saving attendance records.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -167,7 +198,13 @@ export function AttendanceTable({
       
       {!readOnly && students.length > 0 && (
         <div className="flex justify-end">
-          <Button onClick={handleSave}>Save Attendance</Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving}
+          >
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Attendance
+          </Button>
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { Teacher } from "@/types/user";
 import { GraduationCap, Mail, Phone, Edit, Trash } from "lucide-react";
 import { Class } from "@/types/class";
+import { Link } from "react-router-dom";
 
 interface TeacherCardProps {
   teacher: Teacher;
@@ -74,9 +75,11 @@ export function TeacherCard({ teacher, teacherClasses, onEdit, onDelete }: Teach
         )}
       </div>
       <div className="mt-4">
-        <Button variant="outline" size="sm" className="w-full">
-          View Details
-        </Button>
+        <Link to={`/dashboard/teachers/${teacher.id}`}>
+          <Button variant="outline" size="sm" className="w-full">
+            View Details
+          </Button>
+        </Link>
       </div>
     </div>
   );

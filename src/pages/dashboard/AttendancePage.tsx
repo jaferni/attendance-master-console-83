@@ -1,203 +1,194 @@
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardShell } from "@/components/DashboardShell";
-import { AttendanceTable } from "@/components/dashboard/AttendanceTable";
-import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon, LoaderCircle } from "lucide-react";
+import { useContext, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AttendanceCalendar } from "@/components/ui/attendance-calendar";
-import { AuthContext } from "@/context/AuthContext";
-import { AppContext } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
-import { AttendanceStatus } from "@/types/attendance";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { useContext, useState } from "react";
+import { AppContext } from "@/context/AppContext";
+import { AuthContext } from "@/context/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AttendanceTable } from "@/components/dashboard/AttendanceTable";
+import { Navigate } from "react-router-dom";
 
 export default function AttendancePage() {
   const { user } = useContext(AuthContext);
-  const {
-    classes,
-    getClassesForTeacher,
-    getAttendanceForClass,
-    getAttendanceForStudent,
+  const { 
+    classes, 
+    getClassesForTeacher, 
+    getStudentsInClass, 
+    getAttendanceForClass, 
     saveAttendance,
+    isLoading 
   } = useContext(AppContext);
   
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   
-  if (!user) return null;
-  
-  const isAdmin = user.role === "superadmin";
-  const isTeacher = user.role === "teacher";
-  const isStudent = user.role === "student";
-  
+  // Format date for API calls
   const formattedDate = format(selectedDate, "yyyy-MM-dd");
   
-  const teacherClasses = isTeacher
+  // Filter classes based on user role
+  const availableClasses = user?.role === "teacher" 
     ? getClassesForTeacher(user.id)
+    : classes;
+  
+  // Get students for selected class
+  const studentsInClass = selectedClassId 
+    ? getStudentsInClass(selectedClassId) 
     : [];
   
-  const availableClasses = isAdmin
-    ? classes
-    : isTeacher
-    ? teacherClasses
-    : [];
-  
-  const selectedClass = selectedClassId
-    ? classes.find((c) => c.id === selectedClassId)
-    : undefined;
-  
-  const classAttendance = selectedClass
-    ? getAttendanceForClass(selectedClass.id, formattedDate)
+  // Get existing attendance records
+  const existingAttendance = selectedClassId 
+    ? getAttendanceForClass(selectedClassId, formattedDate) 
     : {};
   
-  const studentAttendance = isStudent
-    ? getAttendanceForStudent(user.id)
-    : [];
+  // Redirect non-authorized users
+  if (user && user.role === "student") {
+    return <Navigate to="/dashboard" />;
+  }
   
-  const handleSaveAttendance = (records: Record<string, AttendanceStatus>) => {
-    if (selectedClass && user) {
-      saveAttendance(
-        selectedClass.id,
-        formattedDate,
-        records,
-        user.id
-      );
-    }
+  // Handle saving attendance
+  const handleSaveAttendance = async (records: Record<string, string>) => {
+    if (!user || !selectedClassId) return;
+    
+    await saveAttendance(
+      selectedClassId,
+      formattedDate,
+      records,
+      user.id
+    );
   };
-
+  
   return (
     <DashboardLayout>
       <DashboardShell
         title="Attendance"
-        description={
-          isAdmin || isTeacher
-            ? "Manage attendance for classes"
-            : "View your attendance records"
-        }
+        description="Record and track student attendance"
       >
-        {(isAdmin || isTeacher) && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="w-full md:w-1/3 space-y-2">
-                <Label htmlFor="class-select">Select Class</Label>
-                <Select
-                  value={selectedClassId}
-                  onValueChange={setSelectedClassId}
-                >
-                  <SelectTrigger id="class-select">
-                    <SelectValue placeholder="Select a class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableClasses.map((cls) => (
-                      <SelectItem key={cls.id} value={cls.id}>
-                        {cls.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-full md:w-1/3 space-y-2">
-                <Label>Select Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? (
-                        format(selectedDate, "PPP")
+        <div className="space-y-6">
+          {/* Date & Class Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Take Attendance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Date Picker */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? (
+                          format(selectedDate, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Class Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Class</label>
+                  <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoading ? (
+                        <SelectItem value="loading" disabled>
+                          <div className="flex items-center gap-2">
+                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                            <span>Loading classes...</span>
+                          </div>
+                        </SelectItem>
+                      ) : availableClasses.length > 0 ? (
+                        availableClasses.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </SelectItem>
+                        ))
                       ) : (
-                        <span>Pick a date</span>
+                        <SelectItem value="no-classes" disabled>
+                          No classes available
+                        </SelectItem>
                       )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {selectedClass && (
-              <AttendanceTable
-                students={selectedClass.students}
-                date={selectedDate}
-                existingRecords={classAttendance}
-                onSave={handleSaveAttendance}
-              />
-            )}
-          </div>
-        )}
-
-        {isStudent && (
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-xl border glass glass-hover p-6">
-              <h2 className="text-lg font-medium mb-4">Attendance Summary</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-muted/30 p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Present</p>
-                  <p className="text-2xl font-bold text-green-500">
-                    {
-                      studentAttendance.filter(
-                        (record) => record.status === "present"
-                      ).length
-                    }
-                  </p>
-                </div>
-                <div className="rounded-lg bg-muted/30 p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Absent</p>
-                  <p className="text-2xl font-bold text-red-500">
-                    {
-                      studentAttendance.filter(
-                        (record) => record.status === "absent"
-                      ).length
-                    }
-                  </p>
-                </div>
-                <div className="rounded-lg bg-muted/30 p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Late</p>
-                  <p className="text-2xl font-bold text-yellow-500">
-                    {
-                      studentAttendance.filter(
-                        (record) => record.status === "late"
-                      ).length
-                    }
-                  </p>
-                </div>
-                <div className="rounded-lg bg-muted/30 p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Excused</p>
-                  <p className="text-2xl font-bold text-blue-500">
-                    {
-                      studentAttendance.filter(
-                        (record) => record.status === "excused"
-                      ).length
-                    }
-                  </p>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </div>
-            
-            <div className="rounded-xl border glass glass-hover p-6">
-              <h2 className="text-lg font-medium mb-4">Attendance Calendar</h2>
-              <AttendanceCalendar attendanceRecords={studentAttendance} />
-            </div>
-          </div>
-        )}
+            </CardContent>
+          </Card>
+
+          {/* Attendance Table */}
+          {isLoading ? (
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-8 w-1/3" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between border-b py-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <Skeleton className="h-5 w-48" />
+                      </div>
+                      <Skeleton className="h-8 w-32" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : selectedClassId ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Students</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AttendanceTable 
+                  students={studentsInClass}
+                  date={selectedDate}
+                  classId={selectedClassId}
+                  existingRecords={existingAttendance}
+                  onSave={handleSaveAttendance}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="text-center py-10 text-muted-foreground">
+                Please select a class to view students and record attendance
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </DashboardShell>
     </DashboardLayout>
   );
