@@ -126,6 +126,9 @@ export default function Login() {
                   <p className="mt-2">
                     <strong>Or:</strong> Use a teacher email and password created in the Teacher Management section.
                   </p>
+                  <p className="mt-2">
+                    <strong>SuperAdmin:</strong> Sign up with a new account and the system will automatically assign you the superadmin role.
+                  </p>
                 </div>
               </CardContent>
               <CardFooter>
