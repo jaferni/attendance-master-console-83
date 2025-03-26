@@ -1,14 +1,17 @@
+
 import { Class } from "@/types/class";
+import { Student } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
 import { classes } from "@/data/mockClasses";
 import { students } from "@/data/mockStudents";
 import { teachers } from "@/data/mockTeachers";
+import { toast } from "@/components/ui/use-toast";
 
 export async function fetchClasses(): Promise<Class[]> {
   try {
     const { data, error } = await supabase
       .from('classes')
-      .select('*');
+      .select('*, grades(*)');
     
     if (error) {
       console.error("Error fetching classes from Supabase:", error);
@@ -19,10 +22,13 @@ export async function fetchClasses(): Promise<Class[]> {
       return data.map(cls => ({
         id: cls.id,
         name: cls.name,
-        grade: cls.grade,
+        grade: cls.grades,
+        grade_id: cls.grade_id,
         description: cls.description || '',
         teacherId: cls.teacher_id,
         students: students.filter(s => s.classId === cls.id),
+        subject: cls.subject,
+        created_at: cls.created_at
       }));
     } else {
       return classes;
@@ -37,7 +43,7 @@ export async function fetchClassById(classId: string): Promise<Class | undefined
   try {
     const { data, error } = await supabase
       .from('classes')
-      .select('*')
+      .select('*, grades(*)')
       .eq('id', classId)
       .single();
     
@@ -50,10 +56,13 @@ export async function fetchClassById(classId: string): Promise<Class | undefined
       return {
         id: data.id,
         name: data.name,
-        grade: data.grade,
+        grade: data.grades,
+        grade_id: data.grade_id,
         description: data.description || '',
         teacherId: data.teacher_id,
         students: students.filter(s => s.classId === data.id),
+        subject: data.subject,
+        created_at: data.created_at
       };
     } else {
       return classes.find(c => c.id === classId);
@@ -92,7 +101,7 @@ export async function addClass(
       })
       .select(`
         *,
-        grade:grades(*)
+        grades(*)
       `)
       .single();
     
@@ -101,7 +110,7 @@ export async function addClass(
     const newClass: Class = {
       id: data.id,
       name: data.name,
-      grade: data.grade,
+      grade: data.grades,
       grade_id: data.grade_id,
       teacherId: data.teacher_id,
       subject: data.subject,
@@ -247,4 +256,3 @@ export async function assignTeacherToClass(
 export function getTeacherById(teachers: any[], teacherId: string) {
   return teachers.find((t) => t.id === teacherId);
 }
-

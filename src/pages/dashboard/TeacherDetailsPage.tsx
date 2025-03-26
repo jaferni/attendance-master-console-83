@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, GraduationCap, User, Mail, Phone, CalendarClock } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { allTeachers, allClasses } from "@/data";
+import { teachers, classes } from "@/data";
 import { Teacher } from "@/types/user";
 import { Class } from "@/types/class";
 
@@ -19,11 +19,11 @@ export default function TeacherDetailsPage() {
 
   // In a real application, you would fetch this data from your backend
   const getTeacher = (id: string): Teacher | undefined => {
-    return allTeachers.find(t => t.id === id);
+    return teachers.find(t => t.id === id);
   };
 
   const getTeacherClasses = (teacherId: string): Class[] => {
-    return allClasses.filter(c => c.teacherId === teacherId);
+    return classes.filter(c => c.teacherId === teacherId);
   };
 
   const teacher = getTeacher(teacherId || "");
@@ -122,7 +122,7 @@ export default function TeacherDetailsPage() {
                     <div key={cls.id} className="flex items-center justify-between rounded-lg border p-4">
                       <div className="space-y-1">
                         <h4 className="font-medium">{cls.name}</h4>
-                        <p className="text-sm text-muted-foreground">Grade {cls.grade} • {cls.students.length} students</p>
+                        <p className="text-sm text-muted-foreground">Grade {cls.grade.name} • {cls.students.length} students</p>
                       </div>
                       <Button 
                         variant="outline" 
