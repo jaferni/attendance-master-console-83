@@ -10,24 +10,30 @@ import { useState, useEffect, useContext } from "react";
 import { StatusBadge } from "../StatusBadge";
 import { Loader2 } from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
+import { students } from "@/data"; // Import students mock data
 
 interface AttendanceTableProps {
-  students: Student[];
+  classId: string;
   date: Date;
-  classId: string; // Add classId prop
+  students?: Student[];
   existingRecords?: Record<string, AttendanceStatus>;
-  onSave?: (records: Record<string, AttendanceStatus>) => void;
+  onAttendanceChange?: (studentId: string, status: AttendanceStatus) => void;
+  onSaveAttendance?: (records: Record<string, AttendanceStatus>) => void;
   readOnly?: boolean;
 }
 
 export function AttendanceTable({
-  students,
+  classId,
   date,
-  classId, // Use the classId prop
+  students: providedStudents,
   existingRecords = {},
-  onSave,
+  onAttendanceChange,
+  onSaveAttendance,
   readOnly = false,
 }: AttendanceTableProps) {
+  // Get students for this class if not provided
+  const classStudents = providedStudents || students.filter(s => s.classId === classId);
+  
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>(
     existingRecords
   );
@@ -42,18 +48,18 @@ export function AttendanceTable({
   useEffect(() => {
     setAttendance(existingRecords);
     setSelectAll(
-      students.length > 0 && 
-      Object.values(existingRecords).length === students.length && 
+      classStudents.length > 0 && 
+      Object.values(existingRecords).length === classStudents.length && 
       Object.values(existingRecords).every((status) => status === "present")
     );
-  }, [existingRecords, students]);
+  }, [existingRecords, classStudents]);
 
   // Handle marking all students as present/absent
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     
     const newAttendance: Record<string, AttendanceStatus> = {};
-    students.forEach((student) => {
+    classStudents.forEach((student) => {
       newAttendance[student.id] = checked ? "present" : "absent";
     });
     
@@ -73,11 +79,16 @@ export function AttendanceTable({
       [studentId]: status,
     };
     
-    const allPresent = students.every(
+    const allPresent = classStudents.every(
       (student) => updatedAttendance[student.id] === "present"
     );
     
     setSelectAll(allPresent);
+    
+    // Call the onAttendanceChange prop if provided
+    if (onAttendanceChange) {
+      onAttendanceChange(studentId, status);
+    }
   };
 
   // Handle saving attendance
@@ -94,8 +105,8 @@ export function AttendanceTable({
     setIsSaving(true);
     
     try {
-      if (onSave) {
-        await onSave(attendance);
+      if (onSaveAttendance) {
+        await onSaveAttendance(attendance);
       } else {
         // Format date to YYYY-MM-DD
         const formattedDate = date.toISOString().split('T')[0];
@@ -138,8 +149,8 @@ export function AttendanceTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {students.length > 0 ? (
-              students.map((student) => (
+            {classStudents.length > 0 ? (
+              classStudents.map((student) => (
                 <TableRow key={student.id} className="animate-slide-up">
                   {!readOnly && (
                     <TableCell className="text-center">
@@ -196,7 +207,7 @@ export function AttendanceTable({
         </Table>
       </div>
       
-      {!readOnly && students.length > 0 && (
+      {!readOnly && classStudents.length > 0 && (
         <div className="flex justify-end">
           <Button 
             onClick={handleSave} 

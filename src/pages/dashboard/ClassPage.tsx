@@ -20,24 +20,17 @@ export default function ClassPage() {
   const [date, setDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<string>("students");
 
-  const { data: classData } = useQuery({
+  const { data: classData, isLoading: isLoadingClass } = useQuery({
     queryKey: ["class", classId],
     queryFn: () => fetchClassById(classId || ""),
     enabled: !!classId,
   });
 
-  const { data: attendanceData = [] } = useQuery({
+  const { data: attendanceData = [], isLoading: isLoadingAttendance } = useQuery({
     queryKey: ["attendance", format(date, "yyyy-MM-dd"), classId],
     queryFn: () => fetchAttendance(format(date, "yyyy-MM-dd"), classId || null),
     enabled: !!classId,
   });
-
-  const handleAttendanceChange = (
-    studentId: string,
-    status: AttendanceStatus
-  ) => {
-    console.log("Updating attendance:", studentId, status);
-  };
 
   const handleDateChange = (newDate: Date | undefined) => {
     if (newDate) {
@@ -51,12 +44,30 @@ export default function ClassPage() {
     console.log("Saving attendance data:", attendanceData);
   };
 
-  if (!classData) {
+  const isLoading = isLoadingClass || isLoadingAttendance;
+
+  if (isLoading) {
     return (
       <DashboardShell title="Loading..." description="Loading class details">
         <div className="flex items-center justify-center p-8">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
         </div>
+      </DashboardShell>
+    );
+  }
+
+  if (!classData) {
+    return (
+      <DashboardShell title="Class Not Found" description="The requested class could not be found">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-4"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Classes
+        </Button>
       </DashboardShell>
     );
   }
@@ -127,7 +138,7 @@ export default function ClassPage() {
                   <AttendanceTable
                     classId={classId}
                     date={date}
-                    onAttendanceChange={handleAttendanceChange}
+                    students={classData.students}
                     onSaveAttendance={handleSaveAttendance}
                   />
                 )}
