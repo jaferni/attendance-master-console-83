@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { AppProvider } from "./context/AppContext";
-import { RequireAuth } from "./components/RequireAuth";
 
 // Pages
 import Index from "./pages/Index";
@@ -21,44 +20,36 @@ import GradesClassesPage from "./pages/dashboard/GradesClassesPage";
 import StudentsPage from "./pages/dashboard/StudentsPage";
 import TeachersPage from "./pages/dashboard/TeachersPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
-import TeacherDetailsPage from "./pages/dashboard/TeacherDetailsPage";
 
 const queryClient = new QueryClient();
 
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <AppProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Navigate to="/login" />} />
-                <Route path="/login" element={<Login />} />
-                
-                {/* Protected Dashboard Routes */}
-                <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
-                <Route path="/dashboard/attendance" element={<RequireAuth><AttendancePage /></RequireAuth>} />
-                <Route path="/dashboard/classes" element={<RequireAuth><ClassesPage /></RequireAuth>} />
-                <Route path="/dashboard/classes/:classId" element={<RequireAuth><ClassPage /></RequireAuth>} />
-                <Route path="/dashboard/grades" element={<RequireAuth role="superadmin"><GradesClassesPage /></RequireAuth>} />
-                <Route path="/dashboard/students" element={<RequireAuth><StudentsPage /></RequireAuth>} />
-                <Route path="/dashboard/teachers" element={<RequireAuth role="superadmin"><TeachersPage /></RequireAuth>} />
-                <Route path="/dashboard/teachers/:teacherId" element={<RequireAuth role="superadmin"><TeacherDetailsPage /></RequireAuth>} />
-                <Route path="/dashboard/holidays" element={<RequireAuth role="superadmin"><HolidaysPage /></RequireAuth>} />
-                <Route path="/dashboard/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
-                
-                {/* 404 Route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </AppProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <AuthProvider>
+        <AppProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Navigate to="/login" />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/attendance" element={<AttendancePage />} />
+              <Route path="/dashboard/holidays" element={<HolidaysPage />} />
+              <Route path="/dashboard/classes/:classId" element={<ClassPage />} />
+              <Route path="/dashboard/classes" element={<ClassesPage />} />
+              <Route path="/dashboard/grades" element={<GradesClassesPage />} />
+              <Route path="/dashboard/students" element={<StudentsPage />} />
+              <Route path="/dashboard/teachers" element={<TeachersPage />} />
+              <Route path="/dashboard/settings" element={<SettingsPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AppProvider>
+      </AuthProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

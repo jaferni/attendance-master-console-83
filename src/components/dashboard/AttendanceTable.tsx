@@ -6,60 +6,48 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { AttendanceStatus } from "@/types/attendance";
 import { Student } from "@/types/user";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { StatusBadge } from "../StatusBadge";
-import { Loader2 } from "lucide-react";
-import { AuthContext } from "@/context/AuthContext";
-import { students } from "@/data"; // Import students mock data
 
 interface AttendanceTableProps {
-  classId: string;
+  students: Student[];
   date: Date;
-  students?: Student[];
   existingRecords?: Record<string, AttendanceStatus>;
-  onAttendanceChange?: (studentId: string, status: AttendanceStatus) => void;
-  onSaveAttendance?: (records: Record<string, AttendanceStatus>) => void;
+  onSave?: (records: Record<string, AttendanceStatus>) => void;
   readOnly?: boolean;
 }
 
 export function AttendanceTable({
-  classId,
+  students,
   date,
-  students: providedStudents,
   existingRecords = {},
-  onAttendanceChange,
-  onSaveAttendance,
+  onSave,
   readOnly = false,
 }: AttendanceTableProps) {
-  // Get students for this class if not provided
-  const classStudents = providedStudents || students.filter(s => s.classId === classId);
-  
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>(
     existingRecords
   );
   const [selectAll, setSelectAll] = useState<boolean>(
     Object.values(existingRecords).every((status) => status === "present")
   );
-  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
-  const { user } = useContext(AuthContext);
 
   // Update attendance state when existingRecords changes
   useEffect(() => {
     setAttendance(existingRecords);
     setSelectAll(
-      classStudents.length > 0 && 
-      Object.values(existingRecords).length === classStudents.length && 
+      students.length > 0 && 
+      Object.values(existingRecords).length === students.length && 
       Object.values(existingRecords).every((status) => status === "present")
     );
-  }, [existingRecords, classStudents]);
+  }, [existingRecords, students]);
 
   // Handle marking all students as present/absent
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     
     const newAttendance: Record<string, AttendanceStatus> = {};
-    classStudents.forEach((student) => {
+    students.forEach((student) => {
       newAttendance[student.id] = checked ? "present" : "absent";
     });
     
@@ -79,52 +67,22 @@ export function AttendanceTable({
       [studentId]: status,
     };
     
-    const allPresent = classStudents.every(
+    const allPresent = students.every(
       (student) => updatedAttendance[student.id] === "present"
     );
     
     setSelectAll(allPresent);
-    
-    // Call the onAttendanceChange prop if provided
-    if (onAttendanceChange) {
-      onAttendanceChange(studentId, status);
-    }
   };
 
   // Handle saving attendance
-  const handleSave = async () => {
-    if (!user) {
+  const handleSave = () => {
+    if (onSave) {
+      onSave(attendance);
+    } else {
       toast({
-        title: "Authentication required",
-        description: "You must be logged in to save attendance records.",
-        variant: "destructive"
+        title: "Attendance saved",
+        description: "Attendance has been successfully recorded.",
       });
-      return;
-    }
-    
-    setIsSaving(true);
-    
-    try {
-      if (onSaveAttendance) {
-        await onSaveAttendance(attendance);
-      } else {
-        // Format date to YYYY-MM-DD
-        const formattedDate = date.toISOString().split('T')[0];
-        
-        toast({
-          title: "Attendance saved",
-          description: `Attendance for ${formattedDate} has been successfully recorded.`,
-        });
-      }
-    } catch (error) {
-      console.error("Error saving attendance:", error);
-      toast({
-        title: "Error saving attendance",
-        description: "An error occurred while saving attendance records.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -149,8 +107,8 @@ export function AttendanceTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {classStudents.length > 0 ? (
-              classStudents.map((student) => (
+            {students.length > 0 ? (
+              students.map((student) => (
                 <TableRow key={student.id} className="animate-slide-up">
                   {!readOnly && (
                     <TableCell className="text-center">
@@ -207,15 +165,9 @@ export function AttendanceTable({
         </Table>
       </div>
       
-      {!readOnly && classStudents.length > 0 && (
+      {!readOnly && students.length > 0 && (
         <div className="flex justify-end">
-          <Button 
-            onClick={handleSave} 
-            disabled={isSaving}
-          >
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Attendance
-          </Button>
+          <Button onClick={handleSave}>Save Attendance</Button>
         </div>
       )}
     </div>

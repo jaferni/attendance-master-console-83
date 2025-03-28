@@ -1,77 +1,7 @@
-
+import { toast } from "@/hooks/use-toast";
 import { Class } from "@/types/class";
 import { Student } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
-import { classes } from "@/data/mockClasses";
-import { students } from "@/data/mockStudents";
-import { teachers } from "@/data/mockTeachers";
-import { toast } from "@/components/ui/use-toast";
-
-export async function fetchClasses(): Promise<Class[]> {
-  try {
-    const { data, error } = await supabase
-      .from('classes')
-      .select('*, grades(*)');
-    
-    if (error) {
-      console.error("Error fetching classes from Supabase:", error);
-      return classes;
-    }
-    
-    if (data && data.length > 0) {
-      return data.map(cls => ({
-        id: cls.id,
-        name: cls.name,
-        grade: cls.grades,
-        grade_id: cls.grade_id,
-        description: cls.description || '',
-        teacherId: cls.teacher_id,
-        students: students.filter(s => s.classId === cls.id),
-        subject: cls.subject,
-        created_at: cls.created_at
-      }));
-    } else {
-      return classes;
-    }
-  } catch (error) {
-    console.error("Error in fetchClasses:", error);
-    return classes;
-  }
-}
-
-export async function fetchClassById(classId: string): Promise<Class | undefined> {
-  try {
-    const { data, error } = await supabase
-      .from('classes')
-      .select('*, grades(*)')
-      .eq('id', classId)
-      .single();
-    
-    if (error) {
-      console.error("Error fetching class from Supabase:", error);
-      return classes.find(c => c.id === classId);
-    }
-    
-    if (data) {
-      return {
-        id: data.id,
-        name: data.name,
-        grade: data.grades,
-        grade_id: data.grade_id,
-        description: data.description || '',
-        teacherId: data.teacher_id,
-        students: students.filter(s => s.classId === data.id),
-        subject: data.subject,
-        created_at: data.created_at
-      };
-    } else {
-      return classes.find(c => c.id === classId);
-    }
-  } catch (error) {
-    console.error("Error in fetchClassById:", error);
-    return classes.find(c => c.id === classId);
-  }
-}
 
 export function getClassById(classes: Class[], classId: string): Class | undefined {
   return classes.find((c) => c.id === classId);
@@ -101,7 +31,7 @@ export async function addClass(
       })
       .select(`
         *,
-        grades(*)
+        grade:grades(*)
       `)
       .single();
     
@@ -110,7 +40,7 @@ export async function addClass(
     const newClass: Class = {
       id: data.id,
       name: data.name,
-      grade: data.grades,
+      grade: data.grade,
       grade_id: data.grade_id,
       teacherId: data.teacher_id,
       subject: data.subject,
